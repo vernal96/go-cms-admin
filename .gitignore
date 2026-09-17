@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-sdk/
+dist-app/
+*.tgz
+.env*
+!.env.example

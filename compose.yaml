@@ -1,0 +1,11 @@
+services:
+  admin:
+    build: .
+    container_name: go-cms-admin
+    environment:
+      ADMIN_API_TARGET: ${ADMIN_API_TARGET:-http://host.docker.internal:8080}
+      VITE_PROJECT_NAME: ${VITE_PROJECT_NAME:-Go CMS}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - "${ADMIN_PORT:-5173}:5173"
