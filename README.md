@@ -24,7 +24,7 @@ ADMIN_API_TARGET=http://host.docker.internal:8080 docker compose up -d --build -
 ```
 
 The admin host is then available at `http://localhost:5173`. The backend is
-started separately from `go-cms-start`. `host.docker.internal` is explicitly
+started separately from [`go-cms`](https://github.com/vernal96/go-cms). `host.docker.internal` is explicitly
 mapped by Compose on Linux. The command above overrides a local `.env` target,
 which would otherwise point at localhost inside the container.
 
