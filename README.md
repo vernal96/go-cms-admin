@@ -4,6 +4,8 @@ Standalone Vue administration UI and extension package for Go CMS.
 
 ## Development
 
+Requires Node.js >=24 and npm. The backend must already be running.
+
 ```sh
 npm ci
 cp .env.example .env
@@ -11,16 +13,30 @@ npm run dev -- --host 0.0.0.0
 ```
 
 The UI communicates with the backend exclusively through HTTP. The Vite proxy
-forwards `/api` requests to `ADMIN_API_TARGET`.
+forwards `/api` requests to `ADMIN_API_TARGET` from `.env` (defaults to
+`http://localhost:8080`). Process environment variables override `.env`.
+`ADMIN_PORT` controls the local Vite port (default 5173).
 
 For a containerized local host, use the included compose file:
 
 ```sh
-ADMIN_API_TARGET=http://host.docker.internal:8080 docker compose up --build
+ADMIN_API_TARGET=http://host.docker.internal:8080 docker compose up -d --build --wait
 ```
 
 The admin host is then available at `http://localhost:5173`. The backend is
-started separately from `go-cms-start`.
+started separately from `go-cms-start`. `host.docker.internal` is explicitly
+mapped by Compose on Linux. The command above overrides a local `.env` target,
+which would otherwise point at localhost inside the container.
+
+For a second independent installation, use another project and host port:
+
+```sh
+ADMIN_PORT=15173 ADMIN_API_TARGET=http://host.docker.internal:18080 docker compose -p second-admin up -d --build --wait
+```
+
+The container always listens on 5173; `ADMIN_PORT` selects its published host port.
+Use `docker compose down` to stop this admin host. This Dockerfile runs the
+development server; use `npm run build` and a configured HTTP server for production.
 
 ## Package contract
 

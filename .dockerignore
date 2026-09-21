@@ -1,4 +1,11 @@
 node_modules
+.git
+.env
+.env.*
+!.env.example
 dist
 .DS_Store
 npm-debug.log*
+
+dist-app
+dist-sdk

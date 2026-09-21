@@ -1,11 +1,17 @@
 services:
   admin:
     build: .
-    container_name: go-cms-admin
     environment:
       ADMIN_API_TARGET: ${ADMIN_API_TARGET:-http://host.docker.internal:8080}
+      ADMIN_PORT: 5173
       VITE_PROJECT_NAME: ${VITE_PROJECT_NAME:-Go CMS}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
       - "${ADMIN_PORT:-5173}:5173"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5173/"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
