@@ -4,19 +4,30 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 
 import { projectName } from './project'
-import { adminPluginRegistry } from './admin-plugins'
+import { adminPlugins } from './admin-plugins'
+import { AdminPluginRegistry } from './admin-plugins/registry'
+import type { AdminPlugin, AdminOverrides } from './admin-plugins/plugin'
+import type { RouterHistory } from 'vue-router'
+import { shellRoutes } from './shell-routes'
 import { adminPluginRegistryKey } from './admin-plugins/context'
 import App from './App.vue'
-import { router } from './router'
+import { createAdminRouter } from './router'
 import './styles.css'
 
 export type AdminMountTarget = string | Element
 
-export interface AdminMountOptions {
+export interface AdminAppOptions {
+  plugins?: readonly AdminPlugin[]
+  overrides?: AdminOverrides
+  history?: RouterHistory
+}
+export interface AdminMountOptions extends AdminAppOptions {
   target?: AdminMountTarget
 }
 
-export function createAdminApp(): VueApp<Element> {
+export function createAdminApp(options: AdminAppOptions = {}): VueApp<Element> {
+  const registry = new AdminPluginRegistry([...adminPlugins, ...(options.plugins ?? [])], Object.values(shellRoutes), options.overrides)
+  const router = createAdminRouter(registry, options.history)
   document.title = `${projectName} — Администрирование`
   document.querySelector('meta[name="description"]')?.setAttribute(
     'content',
@@ -24,15 +35,17 @@ export function createAdminApp(): VueApp<Element> {
   )
 
   return createApp(App)
-    .provide(adminPluginRegistryKey, adminPluginRegistry)
+    .provide(adminPluginRegistryKey, registry)
     .use(router)
     .use(ElLoading)
 }
 
 export function mountAdmin(options: AdminMountOptions = {}): ComponentPublicInstance | null {
   const target = options.target ?? '#app'
-  return createAdminApp().mount(target)
+  return createAdminApp(options).mount(target)
 }
 
 export { App as AdminApp }
 export type { Component, Plugin }
+
+export type { AdminPlugin, AdminOverrides } from './admin-plugins/plugin'

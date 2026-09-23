@@ -82,3 +82,14 @@ it('keeps static routes, different regexp constraints and modifiers distinct', (
   const registry = new AdminPluginRegistry([{code:'example',routes:paths.map((path,index)=>({name:`example.route${index}`,path,component:view}))}])
   expect(registry.routeRecords()).toHaveLength(paths.length)
 })
+
+it('replaces only explicit installed definitions and preserves originals', () => {
+ const replacement = { template: '<div>project</div>' }
+ const plugin = { code: 'example', fieldEditors: { 'example.value': view }, routes: [{name:'example.page',path:'/admin/example',component:view}] }
+ const registry = new AdminPluginRegistry([plugin], [], {fieldEditors:{'example.value':replacement},routes:{'example.page':{component:replacement}}})
+ expect(registry.fieldEditor('example.value')).toBe(replacement)
+ expect(registry.route('example.page')?.component).toBe(replacement)
+ expect(plugin.fieldEditors['example.value']).toBe(view)
+ expect(() => new AdminPluginRegistry([plugin], [], {fieldEditors:{'example.missing':replacement}})).toThrow(/missing/)
+ expect(() => new AdminPluginRegistry([plugin, plugin])).toThrow(/more than once/)
+})

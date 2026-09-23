@@ -9,7 +9,8 @@ import {
 } from 'element-plus'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-import { adminPluginRegistry } from '../admin-plugins'
+import { useAdminPluginRegistry } from '../admin-plugins/context'
+const adminPluginRegistry = useAdminPluginRegistry()
 import type { ResolvedAdminNavigationItem } from '../composables/use-admin-navigation'
 import AdminNavigationDropdownItems from './AdminNavigationDropdownItems.vue'
 

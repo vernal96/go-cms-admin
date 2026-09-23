@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { projectName } from './project'
 import { onBeforeUnmount, onMounted, watch } from 'vue'
-import { ElCard, ElIcon } from 'element-plus'
+import { ElAlert, ElCard, ElIcon } from 'element-plus'
 import { Loading, Platform } from '@element-plus/icons-vue'
 
 import AccessDeniedView from './components/AccessDeniedView.vue'
@@ -22,6 +22,7 @@ const {
   bootstrap,
   signIn,
   logout,
+  invalidateSession,
   refreshSession,
   dispose,
 } = useAdminAuth()
@@ -37,7 +38,7 @@ function handleSignIn(credentials: LoginCredentials): void {
 }
 
 onMounted(() => {
-  setAdminUnauthorizedHandler(logout)
+  setAdminUnauthorizedHandler(invalidateSession)
   void bootstrap()
 })
 onBeforeUnmount(() => {
@@ -85,4 +86,5 @@ onBeforeUnmount(() => {
     @logout="logout"
     @profile-updated="refreshSession"
   />
+  <el-alert v-if="errorMessage && (status === 'authorized' || status === 'forbidden')" :title="errorMessage" type="error" :closable="false" />
 </template>

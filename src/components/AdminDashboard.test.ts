@@ -1,3 +1,5 @@
+import { adminPluginRegistry } from '../admin-plugins'
+import { adminPluginRegistryKey } from '../admin-plugins/context'
 // @vitest-environment jsdom
 
 import { flushPromises, shallowMount } from '@vue/test-utils'
@@ -32,7 +34,7 @@ async function mountDashboard(permissions: string[], path = '/admin/dashboard') 
       accessToken: 'token',
       permissions: new Set(permissions),
     },
-    global: {
+    global: { provide: { [adminPluginRegistryKey as symbol]: adminPluginRegistry },
       plugins: [router],
       renderStubDefaultSlot: true,
       stubs: {

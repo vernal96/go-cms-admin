@@ -60,7 +60,8 @@ mountAdmin({ target: '#app' })
 
 Vue, Vue Router, Element Plus, TinyMCE and other runtime libraries remain peer
 dependencies. New components and admin plugins are added through npm
-dependencies and the declarative `src/admin-plugins.ts` composition point.
+dependencies and the public `plugins` / `overrides` options of `mountAdmin`
+or `createAdminApp` (see [SDK.md](SDK.md)).
 The backend contributes semantic route/navigation data and never receives Vue
 component names or executable JavaScript.
 

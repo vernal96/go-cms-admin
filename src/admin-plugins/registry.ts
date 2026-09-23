@@ -1,7 +1,7 @@
 import type { Component } from 'vue'
 import type { RouteRecordRaw } from 'vue-router'
 
-import type { AdminPlugin, AdminRouteDefinition } from './plugin'
+import type { AdminPlugin, AdminRouteDefinition, AdminOverrides } from './plugin'
 import { routeShape } from './route-shape'
 
 const semanticCodePattern = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/
@@ -13,7 +13,7 @@ export class AdminPluginRegistry {
   readonly #icons = new Map<string, Component>()
   readonly #plugins: AdminPlugin[]
 
-  constructor(plugins: readonly AdminPlugin[], reservedRoutes: readonly Pick<AdminRouteDefinition, 'name' | 'path'>[] = []) {
+  constructor(plugins: readonly AdminPlugin[], reservedRoutes: readonly Pick<AdminRouteDefinition, 'name' | 'path'>[] = [], overrides: AdminOverrides = {}) {
     const pluginCodes = new Set<string>()
     const routePaths = new Map<string, string>()
     for (const route of reservedRoutes) routePaths.set(routeShape(route.path), route.name)
@@ -69,6 +69,21 @@ export class AdminPluginRegistry {
           throw new Error(`Admin icon is registered more than once: ${code}`)
         }
         this.#icons.set(code, icon)
+      }
+    }
+    for (const [name, replacement] of Object.entries(overrides.routes ?? {})) {
+      const route = this.#routes.get(name)
+      if (!route) throw new Error(`Cannot override missing admin route: ${name}`)
+      this.#routes.set(name, { ...route, component: replacement.component, props: replacement.props ?? route.props })
+    }
+    for (const [entries, target] of [
+      [overrides.fieldEditors, this.#fieldEditors],
+      [overrides.configEditors, this.#configEditors],
+      [overrides.icons, this.#icons],
+    ] as const) {
+      for (const [code, value] of Object.entries(entries ?? {})) {
+        if (!target.has(code)) throw new Error(`Cannot override missing admin definition: ${code}`)
+        target.set(code, value)
       }
     }
   }

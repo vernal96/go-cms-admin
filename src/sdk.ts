@@ -1,5 +1,5 @@
 // Public extension API. Applications and plugins must share one SDK instance.
-export type { AdminPlugin, AdminRouteDefinition } from './admin-plugins/plugin'
+export type { AdminPlugin, AdminRouteDefinition, AdminOverrides } from './admin-plugins/plugin'
 export { AdminPluginRegistry } from './admin-plugins/registry'
 export { adminPluginRegistryKey } from './admin-plugins/context'
 export { adminAccessTokenKey, adminPermissionsKey } from './admin-context'

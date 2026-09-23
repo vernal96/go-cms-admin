@@ -2,7 +2,9 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { router } from './router'
+import { createAdminRouter } from './router'
+import { adminPluginRegistry } from './admin-plugins'
+const router = createAdminRouter(adminPluginRegistry)
 
 describe('admin router', () => {
   it('uses the dashboard as the main and fallback route', () => {

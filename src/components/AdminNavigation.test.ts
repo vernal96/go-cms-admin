@@ -1,3 +1,4 @@
+import { adminPluginRegistryKey } from '../admin-plugins/context'
 // @vitest-environment jsdom
 
 import { mount } from '@vue/test-utils'
@@ -54,7 +55,7 @@ async function mountNavigation(path: string) {
   await router.isReady()
   const wrapper = mount(AdminNavigation, {
     props: { items },
-    global: { plugins: [router], stubs },
+    global: { provide: { [adminPluginRegistryKey as symbol]: adminPluginRegistry }, plugins: [router], stubs },
   })
   return { wrapper, router }
 }

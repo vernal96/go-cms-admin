@@ -4,6 +4,7 @@ import {
   AdminAPIError,
   loadAdminSession,
   login,
+  revokeSession,
 } from '../api/admin-api'
 import type {
   AdminSessionResponse,
@@ -22,6 +23,7 @@ import {
 const maximumTimerDelay = 2_147_483_647
 
 export interface AdminAuthDependencies {
+ revokeSession(accessToken: string): Promise<void>
   login(credentials: LoginCredentials): Promise<LoginResponse>
   loadSession(accessToken: string): Promise<AdminSessionResponse>
   storage: AdminSessionStore
@@ -32,6 +34,7 @@ export interface AdminAuthDependencies {
 
 const browserDependencies: AdminAuthDependencies = {
   login,
+  revokeSession,
   loadSession: loadAdminSession,
   storage: browserSessionStore,
   now: Date.now,
@@ -96,9 +99,17 @@ export function useAdminAuth(
     }
   }
 
-  function logout(): void {
-    endSession(null)
+  async function logout(): Promise<void> {
+    const token = accessToken.value ?? dependencies.storage.read()?.accessToken
+    try {
+      if (token) await dependencies.revokeSession(token)
+      endSession(null)
+    } catch (error) {
+      if (error instanceof AdminAPIError && error.status === 401) { endSession(null); return }
+      errorMessage.value = 'Не удалось завершить сессию на сервере. Повторите выход.'
+    }
   }
+  function invalidateSession(): void { endSession('Сессия истекла. Войдите снова.') }
 
   function dispose(): void {
     clearExpirationTimer()
@@ -186,6 +197,7 @@ export function useAdminAuth(
     bootstrap,
     signIn,
     logout,
+    invalidateSession,
     refreshSession,
     dispose,
   }

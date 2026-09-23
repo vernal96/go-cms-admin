@@ -1,18 +1,21 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouterHistory } from 'vue-router'
 
-import { adminPluginRegistry } from './admin-plugins'
+import type { AdminPluginRegistry } from './admin-plugins/registry'
 import { shellRoutes } from './shell-routes'
 import DashboardView from './views/DashboardView.vue'
 import ProfileView from './views/ProfileView.vue'
 
-export const router = createRouter({
-  history: createWebHistory(),
+export function createAdminRouter(registry: AdminPluginRegistry, history: RouterHistory = createWebHistory()) {
+ return createRouter({
+  history,
   routes: [
     { path: '/', redirect: '/admin/dashboard' },
     { ...shellRoutes.root, redirect: shellRoutes.dashboard.path },
     { ...shellRoutes.dashboard, component: DashboardView },
     { ...shellRoutes.profile, component: ProfileView },
-    ...adminPluginRegistry.routeRecords(),
+    ...registry.routeRecords(),
     { path: '/:pathMatch(.*)*', redirect: '/admin/dashboard' },
   ],
 })
+
+}

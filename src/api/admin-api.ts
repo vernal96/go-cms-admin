@@ -171,3 +171,7 @@ async function responseError(response: Response): Promise<AdminAPIError> {
 
   return new AdminAPIError(response.status, code, message, fieldErrors)
 }
+
+export async function revokeSession(accessToken: string): Promise<void> {
+ await adminRequestVoid('/api/auth/logout', accessToken, { method: 'POST' })
+}

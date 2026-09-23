@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 
 import { adminPluginRegistry } from '../admin-plugins'
+import { useAdminPluginRegistry } from '../admin-plugins/context'
 import type { AdminPluginRegistry } from '../admin-plugins/registry'
 import { adminRequest } from '../api/admin-api'
 import type { AdminNavigationItem, AdminNavigationResponse } from '../types/admin'
@@ -36,7 +37,7 @@ export function resolveAdminNavigation(
 }
 
 export function useAdminNavigation(
-  registry: AdminPluginRegistry = adminPluginRegistry,
+  registry: AdminPluginRegistry = useAdminPluginRegistry(),
 ) {
   const items = ref<ResolvedAdminNavigationItem[]>([])
   const loading = ref(false)

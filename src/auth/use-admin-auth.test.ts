@@ -46,6 +46,7 @@ function dependencies(
   storage: AdminSessionStore
   login: AdminAuthDependencies['login']
   loadSession: AdminAuthDependencies['loadSession']
+  revokeSession: ReturnType<typeof vi.fn>
 } {
   let current = stored
   const storage: AdminSessionStore = {
@@ -58,7 +59,9 @@ function dependencies(
     }),
   }
   const login = vi.fn().mockResolvedValue(loginResponse)
+  const revokeSession = vi.fn().mockResolvedValue(undefined)
   const authDependencies: AdminAuthDependencies = {
+ revokeSession,
     login,
     loadSession,
     storage,
@@ -70,6 +73,7 @@ function dependencies(
   }
   return {
     auth: useAdminAuth(authDependencies),
+    revokeSession,
     storage,
     login,
     loadSession,
@@ -140,4 +144,21 @@ describe('admin authorization state', () => {
     expect(fixture.storage.write).toHaveBeenCalledWith(validSession)
     expect(fixture.auth.status.value).toBe('authorized')
   })
+})
+
+it('revokes the current session before clearing local credentials', async () => {
+ const fixture = dependencies(validSession)
+ await fixture.auth.bootstrap()
+ await fixture.auth.logout()
+ expect(fixture.revokeSession).toHaveBeenCalledWith(validSession.accessToken)
+ expect(fixture.auth.status.value).toBe('anonymous')
+})
+it('keeps the session available for retry when logout fails', async () => {
+ const fixture = dependencies(validSession)
+ await fixture.auth.bootstrap()
+ fixture.revokeSession.mockRejectedValue(new Error('offline'))
+ await fixture.auth.logout()
+ expect(fixture.auth.status.value).toBe('authorized')
+ expect(fixture.storage.clear).not.toHaveBeenCalled()
+ expect(fixture.auth.errorMessage.value).toContain('Повторите выход')
 })

@@ -2,7 +2,8 @@
 import { ElDropdownItem, ElIcon } from 'element-plus'
 import { Menu } from '@element-plus/icons-vue'
 
-import { adminPluginRegistry } from '../admin-plugins'
+import { useAdminPluginRegistry } from '../admin-plugins/context'
+const adminPluginRegistry = useAdminPluginRegistry()
 import type { ResolvedAdminNavigationItem } from '../composables/use-admin-navigation'
 
 defineOptions({ name: 'AdminNavigationDropdownItems' })
