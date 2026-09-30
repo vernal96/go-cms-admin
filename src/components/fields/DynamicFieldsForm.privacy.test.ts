@@ -7,9 +7,9 @@ it('shows privacy only for site metadata and keeps both values editable', () => 
   const wrapper = mount(DynamicFieldsForm, {
     props: {
       fields: [
-        { key: 'title', type: 'string', label: 'Название', required: false, rules: [], public: true },
-        { key: 'secret', type: 'string', label: 'Секрет', required: false, rules: [], public: false },
-        { key: 'ordinary', type: 'string', label: 'Обычное поле', required: false, rules: [] },
+        { key: 'title', type: 'string', label: 'Название', required: false, validators: [], public: true },
+        { key: 'secret', type: 'string', label: 'Секрет', required: false, validators: [], public: false },
+        { key: 'ordinary', type: 'string', label: 'Обычное поле', required: false, validators: [] },
       ],
       modelValue: { title: 'Студия', secret: 'hidden', ordinary: 'value' },
     },

@@ -5,8 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 import RichTextEditor from '../../components/RichTextEditor.vue'
 import AccessDeniedView from '../../components/AccessDeniedView.vue'
 import { useSelectedSite } from '../../composables/use-selected-site'
-import type { FieldDefinition } from '../../types/admin'
-import { createMailTemplate, getMailTemplate, listMailSiteVariables, updateMailTemplate } from './api'
+import type { FieldDefinition, ValidatorMetadata } from '../../types/admin'
+import { createMailTemplate, getMailTemplate, listMailSiteVariables, listMailValidatorTypes, updateMailTemplate } from './api'
 import MailAddressFields from './MailAddressFields.vue'
 import MailAddressListEditor from './MailAddressListEditor.vue'
 import MailAttachmentsEditor from './MailAttachmentsEditor.vue'
@@ -23,6 +23,8 @@ const saving = ref(false)
 const error = ref<string | null>(null)
 const replyToEnabled = ref(false)
 const siteVariables = ref<MailSiteVariable[]>([])
+const validatorTypes = ref<ValidatorMetadata[]>([])
+const variablesEditor = ref<{ validate(): void }>()
 const uploadStorage = ref('')
 const uploadPath = ref('')
 const selectedPlaceholder = ref('')
@@ -61,7 +63,7 @@ function assignTemplate(item: MailTemplate): void {
 }
 
 function cloneField(value: FieldDefinition): FieldDefinition {
-  return { ...value, required: value.required, rules: [...value.rules], options: value.options ? { ...value.options, choices: value.options.choices?.map((item) => ({ ...item })), storages: [...(value.options.storages ?? [])], mime_types: [...(value.options.mime_types ?? [])] } : undefined }
+  return { ...value, required: value.required, validators: JSON.parse(JSON.stringify(value.validators ?? [])), options: value.options ? { ...value.options, choices: value.options.choices?.map((item) => ({ ...item })), storages: [...(value.options.storages ?? [])], mime_types: [...(value.options.mime_types ?? [])] } : undefined }
 }
 
 async function load(): Promise<void> {
@@ -73,7 +75,8 @@ async function load(): Promise<void> {
   if (!siteID) return
   loading.value = true
   try {
-    const editor = await listMailSiteVariables(props.accessToken, siteID)
+    const [editor, validators] = await Promise.all([listMailSiteVariables(props.accessToken, siteID), listMailValidatorTypes(props.accessToken, siteID)])
+    validatorTypes.value = validators.items
     siteVariables.value = editor.items
     uploadStorage.value = editor.upload_storage
     uploadPath.value = editor.upload_path
@@ -85,6 +88,7 @@ async function load(): Promise<void> {
 }
 
 function validate(): string | null {
+  try { variablesEditor.value?.validate?.() } catch (caught) { return caught instanceof Error ? caught.message : 'Проверьте проверки переменных.' }
   clearAddressErrors()
   if (!/^[a-z][a-z0-9_]{1,63}$/.test(form.code)) return 'Код должен содержать 2–64 строчных латинских символа, цифры или подчёркивания.'
   if (!form.name.trim()) return 'Укажите название шаблона.'
@@ -198,7 +202,7 @@ onMounted(() => void load())
 
       <el-card shadow="never" header="Переменные">
         <p class="mail-help">Для каждого значения выберите обязательность. Типы, правила и обязательные значения проверяются при предпросмотре и отправке.</p>
-        <mail-variables-editor v-model="form.variables" />
+        <mail-variables-editor ref="variablesEditor" v-model="form.variables" :available-validators="validatorTypes" :site-id="selected.selectedSite.value?.id" :access-token="accessToken" />
         <div v-if="sitePlaceholders.length" class="mail-placeholder-list">
           <strong>Сайт</strong>
           <el-tag v-for="placeholder in sitePlaceholders" :key="placeholder" class="mail-placeholder" @click="copyPlaceholder(placeholder)">{{ placeholder }}</el-tag>

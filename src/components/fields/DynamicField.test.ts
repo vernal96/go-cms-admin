@@ -12,7 +12,7 @@ function definition(type: string): FieldDefinition {
     type,
     label: type,
     required: false,
-    rules: [],
+    validators: [],
     options: {
       step: 0.1,
       choices: [{ value: 'one', label: 'One' }],

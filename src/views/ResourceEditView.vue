@@ -143,7 +143,7 @@ const hideInMenu = computed({
 })
 const displayedFieldErrors = computed<DynamicFieldErrors>(() => {
   const result = { ...localFieldErrors.value }
-  for (const error of serverFieldErrors.value) result[error.key] = fieldErrorMessage(error.rule, error.param)
+  for (const error of serverFieldErrors.value) result[error.key] = fieldErrorMessage(error.code, error.params)
   return result
 })
 const parentOptions = computed(() => {

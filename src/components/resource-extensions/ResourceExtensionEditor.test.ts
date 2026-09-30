@@ -144,7 +144,7 @@ describe('ResourceExtensionEditor', () => {
         422,
         'validation_failed',
         'SEO template validation failed',
-        [{ key: 'title_template', rule: 'extension', param: 'unknown variable' }],
+        [{ key: 'title_template', code: 'extension', params: { message: 'unknown variable' } }],
       ))
     const wrapper = mountEditor()
     await flushPromises()

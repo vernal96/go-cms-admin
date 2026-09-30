@@ -1,4 +1,5 @@
 import { adminRequest, adminRequestVoid } from '../../api/admin-api'
+import type { ValidatorMetadata } from '../../types/admin'
 import type {
   MailMessage,
   MailMessageDetailResponse,
@@ -33,6 +34,10 @@ export function listSendTemplates(
 
 export function listMailSiteVariables(accessToken: string, siteID: number): Promise<MailSiteVariablesResponse> {
   return adminRequest(`${root(siteID)}/variables`, accessToken)
+}
+
+export function listMailValidatorTypes(accessToken: string, siteID: number): Promise<{ items: ValidatorMetadata[] }> {
+  return adminRequest(`${root(siteID)}/validator-types`, accessToken)
 }
 
 export function getMailTemplate(

@@ -14,14 +14,14 @@ const fields: FieldDefinition[] = [
     type: 'string',
     label: 'Text',
     required: true,
-    rules: ['min=2', 'max=5'],
+    validators: [{ type: 'min_length', options: { value: 2 } }, { type: 'max_length', options: { value: 5 } }],
   },
   {
     key: 'integer',
     type: 'int',
     label: 'Integer',
     required: true,
-    rules: ['min=1', 'max=4'],
+    validators: [{ type: 'min', options: { value: 1 } }, { type: 'max', options: { value: 4 } }],
     options: { step: 1 },
   },
   {
@@ -29,7 +29,7 @@ const fields: FieldDefinition[] = [
     type: 'float',
     label: 'Float',
     required: true,
-    rules: [],
+    validators: [],
     options: { step: 0.1 },
   },
   {
@@ -37,14 +37,14 @@ const fields: FieldDefinition[] = [
     type: 'checkbox',
     label: 'Checked',
     required: true,
-    rules: [],
+    validators: [],
   },
   {
     key: 'radio',
     type: 'radio',
     label: 'Radio',
     required: true,
-    rules: [],
+    validators: [],
     options: { choices: [{ value: 'a', label: 'A' }] },
   },
   {
@@ -52,7 +52,7 @@ const fields: FieldDefinition[] = [
     type: 'select',
     label: 'Single',
     required: true,
-    rules: [],
+    validators: [],
     options: { choices: [{ value: 'a', label: 'A' }], multiple: false },
   },
   {
@@ -60,7 +60,7 @@ const fields: FieldDefinition[] = [
     type: 'select',
     label: 'Multiple',
     required: false,
-    rules: [],
+    validators: [],
     options: { choices: [{ value: 'a', label: 'A' }], multiple: true },
   },
   {
@@ -68,15 +68,15 @@ const fields: FieldDefinition[] = [
     type: 'textarea',
     label: 'Area',
     required: false,
-    rules: ['max=5'],
+    validators: [{ type: 'max_length', options: { value: 5 } }],
   },
-  { key: 'email', type: 'email', label: 'Email', required: false, rules: [] },
+  { key: 'email', type: 'email', label: 'Email', required: false, validators: [] },
   {
     key: 'phone',
     type: 'phone',
     label: 'Phone',
     required: false,
-    rules: [],
+    validators: [],
     options: { pattern: '^\\+[1-9][0-9]{1,14}$' },
   },
   {
@@ -84,7 +84,7 @@ const fields: FieldDefinition[] = [
     type: 'file',
     label: 'Asset',
     required: true,
-    rules: [],
+    validators: [],
     options: { storages: ['public'], mime_types: ['image/*'] },
   },
 ]
@@ -106,7 +106,7 @@ describe('dynamic field model', () => {
     })
   })
 
-  it('validates required, numeric, text, email and E.164 rules', () => {
+  it('validates required, numeric, text, email and E.164 constraints', () => {
     expect(
       validateFieldValues(fields, createFieldValues(fields)),
     ).toMatchObject({
@@ -130,30 +130,30 @@ describe('dynamic field model', () => {
       phone: '8999',
       asset: -1,
     })
-    expect(errors.text).toContain('Минимальное')
+    expect(errors.text).toContain('Минимум символов')
     expect(errors.integer).toContain('Максимальное')
-    expect(errors.area).toContain('Максимальное')
+    expect(errors.area).toContain('Максимум символов')
     expect(errors.email).toContain('электронной')
     expect(errors.phone).toContain('E.164')
     expect(errors.asset).toContain('Выберите файл')
   })
 
-  it('blocks unknown types and maps backend validation rules', () => {
+  it('blocks unknown types and maps backend validator codes', () => {
     expect(unsupportedFieldTypes([{ ...fields[0]!, type: 'future' }])).toEqual([
       'text (future)',
     ])
-    expect(fieldErrorMessage('oneof', '')).toContain('недопустимое')
-    expect(fieldErrorMessage('required', '')).toBe('Поле обязательно.')
+    expect(fieldErrorMessage('oneof')).toContain('недопустимое')
+    expect(fieldErrorMessage('required')).toBe('Поле обязательно.')
   })
 })
 
 it('validates actual editor availability, including empty nested lists', () => {
-  const custom: FieldDefinition = {key:'custom',type:'example.custom',editor:'example.editor',label:'Custom',required:false,rules:[]}
+  const custom: FieldDefinition = {key:'custom',type:'example.custom',editor:'example.editor',label:'Custom',required:false,validators: []}
   const resolver = {fieldEditor: (code:string) => code === 'example.editor' ? {} : undefined}
   expect(unsupportedFieldTypes([custom])).toEqual(['custom (example.editor)'])
   expect(validateFieldValues([custom],{custom:'kept'})).toEqual({custom:'Редактор «example.editor» недоступен.'})
   expect(validateFieldValues([custom],{custom:'kept'},resolver)).toEqual({})
-  const nested: FieldDefinition = {key:'rows',type:'repeater',label:'Rows',required:false,rules:[],options:{fields:[custom]}}
+  const nested: FieldDefinition = {key:'rows',type:'repeater',label:'Rows',required:false,validators: [],options:{fields:[custom]}}
   expect(unsupportedFieldTypes([nested])).toEqual(['rows[].custom (example.editor)'])
   expect(validateFieldValues([nested],{rows:[]})).toHaveProperty('rows[]')
   expect(validateFieldValues([nested],{rows:[{custom:'kept'}]},resolver)).toEqual({})

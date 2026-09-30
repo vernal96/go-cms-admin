@@ -54,7 +54,7 @@ describe('ResourceEditView schema transitions', () => {
       })
       .mockResolvedValueOnce({
         types: [
-			{ code: 'page', label: 'Страница', capabilities: { supports_template: true, supports_content: true, supports_widgets: true, supports_fields: true, mutable_type: true }, settings_fields: [{ key: 'custom_option', type: 'json', label: 'Custom option', required: false, rules: [] }], settings_defaults: {}, content_types: [{ code: 'html', label: 'HTML', editor: 'html' }] },
+			{ code: 'page', label: 'Страница', capabilities: { supports_template: true, supports_content: true, supports_widgets: true, supports_fields: true, mutable_type: true }, settings_fields: [{ key: 'custom_option', type: 'json', label: 'Custom option', required: false, validators: [] }], settings_defaults: {}, content_types: [{ code: 'html', label: 'HTML', editor: 'html' }] },
 			{ code: 'link', label: 'Ссылка', capabilities: { mutable_type: true }, settings_fields: [], settings_defaults: {}, content_types: [] },
         ],
         templates: [
@@ -71,7 +71,7 @@ describe('ResourceEditView schema transitions', () => {
                 type: 'string',
                 label: 'Page title',
                 required: true,
-                rules: [],
+                validators: [],
               },
             ],
           },
@@ -91,14 +91,14 @@ describe('ResourceEditView schema transitions', () => {
                 type: 'string',
                 label: 'Hero title',
                 required: true,
-                rules: [],
+                validators: [],
               },
               {
                 key: 'columns',
                 type: 'int',
                 label: 'Columns',
                 required: true,
-                rules: [],
+                validators: [],
               },
             ],
           },

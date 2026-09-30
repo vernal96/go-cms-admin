@@ -167,7 +167,7 @@ function handleError(error: unknown, fallback: string, action: boolean): void {
   }
   if (error instanceof AdminAPIError) {
     fieldErrors.value = Object.fromEntries(
-      error.fieldErrors.map((field) => [field.key, field.param || error.message]),
+      error.fieldErrors.map((field) => [field.key, String(field.params?.message ?? error.message)]),
     )
   }
   const message = error instanceof Error ? error.message : fallback

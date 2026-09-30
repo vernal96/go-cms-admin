@@ -14,7 +14,7 @@ import TextField from './TextField.vue'
 import FileField from './FileField.vue'
 import JsonField from './JsonField.vue'
 import RepeaterField from './RepeaterField.vue'
-import { fieldEditorError, isMultipleField, type DynamicFieldErrors } from './model'
+import { fieldEditorError, isMultipleField, validatorNumber, type DynamicFieldErrors } from './model'
 import MultipleField from './MultipleField.vue'
 import ResourcePickerField from './ResourcePickerField.vue'
 import RichTextEditor from '../RichTextEditor.vue'
@@ -78,8 +78,8 @@ const resourceIDs = computed<number[]>(() => Array.isArray(model.value) ? model.
     v-model="model"
     :choices="field.options?.choices ?? []"
     :multiple="field.options?.multiple ?? false"
-    :min-items="Math.max(field.required ? 1 : 0, field.options?.min_items ?? 0)"
-    :max-items="field.options?.max_items ?? 0"
+    :min-items="Math.max(field.required ? 1 : 0, validatorNumber(field, 'min_items'))"
+    :max-items="validatorNumber(field, 'max_items')"
     :errors="errors" :field-path="fieldPath ?? field.key"
   />
   <textarea-field v-else-if="control === 'textarea'" v-model="model" />

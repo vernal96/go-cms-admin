@@ -63,7 +63,7 @@ const selectedProfile = computed(
 const displayedFieldErrors = computed<DynamicFieldErrors>(() => {
   const result = { ...localFieldErrors.value }
   for (const error of props.fieldErrors ?? []) {
-    result[error.key] = fieldErrorMessage(error.rule, error.param)
+    result[error.key] = fieldErrorMessage(error.code, error.params)
   }
   return result
 })

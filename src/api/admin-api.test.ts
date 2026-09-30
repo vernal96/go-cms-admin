@@ -17,7 +17,7 @@ describe('admin API structured validation errors', () => {
               code: 'validation_failed',
               message: 'request data is invalid',
               details: {
-                fields: [{ key: 'hero_title', rule: 'required', param: '' }],
+                fields: [{ key: 'hero_title', code: 'required' }],
               },
             },
           }),
@@ -34,7 +34,7 @@ describe('admin API structured validation errors', () => {
     )
     expect(error).toBeInstanceOf(AdminAPIError)
     expect((error as AdminAPIError).fieldErrors).toEqual([
-      { key: 'hero_title', rule: 'required', param: '' },
+      { key: 'hero_title', code: 'required' },
     ])
   })
 })

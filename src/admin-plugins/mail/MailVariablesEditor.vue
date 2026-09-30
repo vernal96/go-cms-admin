@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { ElButton, ElCheckbox, ElInput, ElOption, ElSelect } from 'element-plus'
-import type { FieldChoice, FieldDefinition, FieldOptions } from '../../types/admin'
+import ValidatorEditor from '../../components/fields/ValidatorEditor.vue'
+import type { FieldChoice, FieldDefinition, FieldOptions, ValidatorDefinition, ValidatorMetadata } from '../../types/admin'
 
-const props = defineProps<{ modelValue: FieldDefinition[] }>()
+const props = defineProps<{ modelValue: FieldDefinition[]; availableValidators?: ValidatorMetadata[]; siteId?: number; accessToken?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: FieldDefinition[]] }>()
+const validatorEditors = ref<{ validate(): void }[]>([])
 
 const types = [
   ['string', 'Строка'], ['email', 'Email'], ['textarea', 'Многострочный текст'],
@@ -13,7 +16,7 @@ const types = [
 ] as const
 
 function add(): void {
-  emit('update:modelValue', [...props.modelValue, { key: '', type: 'string', label: '', required: false, rules: [] }])
+  emit('update:modelValue', [...props.modelValue, { key: '', type: 'string', label: '', required: false, validators: [] }])
 }
 function remove(index: number): void {
   emit('update:modelValue', props.modelValue.filter((_, current) => current !== index))
@@ -28,6 +31,17 @@ function update(index: number, patch: Partial<FieldDefinition>): void {
 function updateOptions(index: number, patch: Partial<FieldOptions>): void {
   update(index, { options: { ...(props.modelValue[index]?.options ?? {}), ...patch } })
 }
+function updateValidators(index: number, validators: ValidatorDefinition[]): void { update(index, { validators }) }
+function validate(): void {
+  for (const variable of props.modelValue) {
+    for (const validator of variable.validators ?? []) {
+      const metadata = props.availableValidators?.find(item => item.code === validator.type)
+      if (!metadata) throw new Error(`Проверка «${validator.type}» несовместима с переменной ${variable.key}.`)
+    }
+  }
+  for (const editor of validatorEditors.value) editor?.validate()
+}
+defineExpose({ validate })
 function defaultOptions(type: string): FieldOptions | undefined {
   if (type === 'radio') return { choices: [] }
   if (type === 'select') return { choices: [], multiple: false }
@@ -68,11 +82,7 @@ function csv(value: string): string[] {
         :model-value="variable.required"
         @update:model-value="update(index, { required: Boolean($event) })"
       >Обязательное значение</el-checkbox>
-      <el-input
-        :model-value="variable.rules.join(', ')"
-        placeholder="Правила через запятую, например min=2, max=100"
-        @update:model-value="update(index, { rules: csv($event) })"
-      />
+      <validator-editor :ref="(element: any) => { if (element) validatorEditors[index] = element }" :model-value="variable.validators ?? []" :available="availableValidators ?? []" :field-type="String(variable.type)" :multiple="Boolean(variable.options?.multiple)" :site-id="siteId" :access-token="accessToken" @update:model-value="updateValidators(index, $event)" />
       <el-input
         v-if="variable.type === 'radio' || variable.type === 'select'"
         type="textarea"

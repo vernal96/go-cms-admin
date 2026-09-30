@@ -38,6 +38,8 @@ The container always listens on 5173; `ADMIN_PORT` selects its published host po
 Use `docker compose down` to stop this admin host. This Dockerfile runs the
 development server; use `npm run build` and a configured HTTP server for production.
 
+Forms and Mail field editors load validator metadata from the backend. They render option editors from the catalog, preserve validator order, and mark incompatible validators after a field type change. Dynamic fields check simple built-in constraints locally; backend validation remains authoritative. See the [kernel field validation contract](https://github.com/vernal96/go-cms-kernel/blob/main/docs/field-validation.md).
+
 ## Package contract
 
 The package name is `@go-cms/admin`. It publishes:

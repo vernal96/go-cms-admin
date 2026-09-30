@@ -11,9 +11,9 @@ import DynamicField from './DynamicField.vue'
 import RepeaterField from './RepeaterField.vue'
 import { createFieldValues } from './model'
 
-const title: FieldDefinition = { key: 'title', type: 'string', label: 'Заголовок', required: true, rules: [] }
-const active: FieldDefinition = { key: 'active', type: 'checkbox', label: 'Активен', required: false, rules: [] }
-const field: FieldDefinition = { key: 'slides', type: 'repeater', label: 'Слайды', required: false, rules: [], options: { fields: [title, active], min_items: 1, max_items: 3 } }
+const title: FieldDefinition = { key: 'title', type: 'string', label: 'Заголовок', required: true, validators: [] }
+const active: FieldDefinition = { key: 'active', type: 'checkbox', label: 'Активен', required: false, validators: [] }
+const field: FieldDefinition = { key: 'slides', type: 'repeater', label: 'Слайды', required: false, validators: [{ type: 'min_items', options: { value: 1 } }, { type: 'max_items', options: { value: 3 } }], options: { fields: [title, active] } }
 function setup(value: unknown = [{ title: 'One' }, { title: 'Two' }], definition = field) {
   const model = ref(value)
   const wrapper = mount(defineComponent({ setup: () => () => h(DynamicField, {
@@ -31,7 +31,7 @@ describe('RepeaterField', () => {
     expect(nested[0]!.props()).toMatchObject({ field: title, siteId: 7, accessToken: 'token', resourceTemplates: [{ code: 'page', label: 'Page' }] })
     wrapper.unmount()
   })
-  it('adds with shared defaults, edits without mutating input and observes MaxItems', async () => {
+  it('adds with shared defaults, edits without mutating input and observes max_items', async () => {
     const input = [{ title: 'One' }, { title: 'Two' }]
     const { wrapper, model } = setup(input)
     const add = () => wrapper.findAll('button').find(button => button.text() === 'Добавить')!
@@ -46,7 +46,7 @@ describe('RepeaterField', () => {
     expect(input[0]!.title).toBe('One')
     wrapper.unmount()
   })
-  it('reorders rows, preserves editor identity and enforces MinItems on delete', async () => {
+  it('reorders rows, preserves editor identity and enforces min_items on delete', async () => {
     const { wrapper, model } = setup()
     const firstInput = wrapper.find('input').element
     await wrapper.get('[aria-label="Переместить строку 1 вниз"]').trigger('click')
@@ -64,7 +64,7 @@ describe('RepeaterField', () => {
     wrapper.unmount()
   })
   it('starts empty and emits a plain array of objects', async () => {
-    const { wrapper, model } = setup(undefined, { ...field, options: { ...field.options, min_items: 0 } })
+    const { wrapper, model } = setup(undefined, { ...field, validators: [] })
     // Explicit undefined argument uses setup defaults; replace the model to model an omitted field.
     model.value = undefined
     await wrapper.vm.$nextTick()

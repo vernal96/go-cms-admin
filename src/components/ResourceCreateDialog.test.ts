@@ -53,7 +53,7 @@ describe('ResourceCreateDialog', () => {
                 type: 'string',
                 label: 'Заголовок',
                 required: true,
-                rules: [],
+                validators: [],
               },
             ],
           },
@@ -122,7 +122,7 @@ describe('ResourceCreateDialog', () => {
         types: [{
 			code: 'custom_target', label: 'Товар каталога',
 			capabilities: { supports_target_resource: true, supports_content: true, mutable_type: true },
-			settings_fields: [{ key: 'catalog_mode', type: 'string', label: 'Режим каталога', required: true, rules: [] }],
+			settings_fields: [{ key: 'catalog_mode', type: 'string', label: 'Режим каталога', required: true, validators: [] }],
 			settings_defaults: { catalog_mode: 'standard' },
 			content_types: [{ code: 'markdown', label: 'Markdown', editor: 'textarea' }],
 		}],

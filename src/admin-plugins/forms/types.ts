@@ -1,4 +1,4 @@
-import type { Pagination, ConfigField, FieldTypeMetadata } from '../../types/admin'
+import type { Pagination, ConfigField, FieldTypeMetadata, ValidatorDefinition, ValidatorMetadata } from '../../types/admin'
 
 export type FormsFieldType = string
 
@@ -9,9 +9,6 @@ export interface FormsFieldOptions {
   step?: number
   choices?: FormsChoice[]
   multiple?: boolean
-  min_items?: number
-  max_items?: number
-  pattern?: string
   mime_types?: string[]
   max_file_size?: number
   max_files?: number
@@ -27,7 +24,7 @@ export interface FormField {
   type: FormsFieldType
   label: string
   required: boolean
-  rules: string[]
+  validators: ValidatorDefinition[]
   options?: FormsFieldOptions
   editor?: string
   visible_when?: FormsVisibleWhen
@@ -129,6 +126,7 @@ export interface FormEditorResponse {
   statuses: FormStatus[]
   actions: FormAction[]
   available_field_types: FieldTypeMetadata[]
+  available_validator_types: ValidatorMetadata[]
   available_element_types: ElementTypeMetadata[]
   available_container_types: ContainerTypeMetadata[]
   available_action_types: ActionTypeMetadata[]

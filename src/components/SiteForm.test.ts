@@ -24,7 +24,7 @@ describe('SiteForm', () => {
               type: 'string',
               label: 'Title',
               required: true,
-              rules: ['min=2'],
+              validators: [{ type: 'min_length', options: { value: 2 } }],
             },
           ],
 			editor_tabs: [

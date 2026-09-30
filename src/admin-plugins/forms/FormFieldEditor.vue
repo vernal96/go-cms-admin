@@ -2,16 +2,19 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElForm, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect, ElSwitch } from 'element-plus'
 import ConfigurationEditor from '../../components/fields/ConfigurationEditor.vue'
-import type { FieldTypeMetadata } from '../../types/admin'
+import ValidatorEditor from '../../components/fields/ValidatorEditor.vue'
+import type { FieldTypeMetadata, ValidatorDefinition, ValidatorMetadata } from '../../types/admin'
 import type { FormField, FormFieldPayload, FormsFieldOptions, FormsFieldType } from './types'
 
-const props = defineProps<{ disabled: boolean; initialType: FormsFieldType; field?: FormField | null; fields: FormField[]; availableTypes: FieldTypeMetadata[]; siteId?: number; accessToken?: string }>()
+const props = defineProps<{ disabled: boolean; initialType: FormsFieldType; field?: FormField | null; fields: FormField[]; availableTypes: FieldTypeMetadata[]; availableValidators?: ValidatorMetadata[]; siteId?: number; accessToken?: string }>()
 const emit = defineEmits<{ dirty: [value: boolean] }>()
 let baseline = ''
 const optionValues = ref<FormsFieldOptions>({})
 const optionEditor = ref<{ validate(): void }>()
+const validatorEditor = ref<{ validate(): void }>()
+const validators = ref<ValidatorDefinition[]>([])
 const state = reactive({
-  code: '', type: 'string' as FormsFieldType, label: '', required: false, rules: '', editor: '',
+  code: '', type: 'string' as FormsFieldType, label: '', required: false, editor: '',
   result_label: '', show_in_results: false, show_on_site: false, result_position: 0,
   visible_field: '', visible_value: '',
 })
@@ -30,15 +33,16 @@ function reset(): void {
   const options = item?.options ?? {}
   Object.assign(state, {
     code: item?.code ?? '', type: item?.type ?? props.initialType, label: item?.label ?? '', required: item?.required ?? false,
-    rules: item?.rules?.join(', ') ?? '', editor: item?.editor ?? '', result_label: item?.result_label ?? '',
+    editor: item?.editor ?? '', result_label: item?.result_label ?? '',
     show_in_results: item?.show_in_results ?? false, show_on_site: item?.show_on_site ?? false, result_position: item?.result_position ?? props.fields.length,
     visible_field: item?.visible_when?.field ?? '', visible_value: stringifyCondition(item?.visible_when?.value),
 
   })
   optionValues.value = JSON.parse(JSON.stringify(options))
+  validators.value = JSON.parse(JSON.stringify(item?.validators ?? []))
 }
-onMounted(() => { reset(); baseline = JSON.stringify([state,optionValues.value]); emit('dirty', false) })
-watch([state,optionValues], () => emit('dirty', JSON.stringify([state,optionValues.value]) !== baseline), { deep: true, flush: 'sync' })
+onMounted(() => { reset(); baseline = JSON.stringify([state,optionValues.value,validators.value]); emit('dirty', false) })
+watch([state,optionValues,validators], () => emit('dirty', JSON.stringify([state,optionValues.value,validators.value]) !== baseline), { deep: true, flush: 'sync' })
 
 function conditionValue(): unknown {
   const raw = state.visible_value.trim()
@@ -47,9 +51,10 @@ function conditionValue(): unknown {
 }
 function payload(): FormFieldPayload {
   optionEditor.value?.validate()
+  validatorEditor.value?.validate()
   return {
     code: state.code.trim(), type: state.type, label: state.label.trim(), required: state.required,
-    rules: state.rules.split(',').map((item) => item.trim()).filter(Boolean), options: Object.keys(optionValues.value).length ? JSON.parse(JSON.stringify(optionValues.value)) : undefined, editor: state.editor.trim(),
+    validators: JSON.parse(JSON.stringify(validators.value)), options: Object.keys(optionValues.value).length ? JSON.parse(JSON.stringify(optionValues.value)) : undefined, editor: state.editor.trim(),
     visible_when: state.visible_field ? { field: state.visible_field, value: conditionValue() } : undefined,
     result_label: state.result_label.trim(), show_in_results: state.show_in_results, show_on_site: state.show_on_site, result_position: state.result_position,
   }
@@ -64,7 +69,7 @@ defineExpose({ payload })
       <el-form-item label="Код" required><el-input v-model="state.code" :disabled="locked" /></el-form-item>
       <el-form-item label="Подпись" required><el-input v-model="state.label" /></el-form-item>
       <el-form-item label="Обязательное"><el-switch v-model="state.required" :disabled="locked" /></el-form-item>
-      <el-form-item label="Правила (через запятую)"><el-input v-model="state.rules" placeholder="min=2, max=100" /></el-form-item>
+      <validator-editor ref="validatorEditor" v-model="validators" :available="availableValidators ?? []" :field-type="state.type" :multiple="Boolean(optionValues.multiple)" :site-id="siteId" :access-token="accessToken" />
       <el-form-item label="Редактор"><el-input v-model="state.editor" placeholder="Необязательно" /></el-form-item>
       <section class="options"><configuration-editor v-if="selectedType" ref="optionEditor" v-model="optionValues" :fields="selectedType.options" :editor="selectedType.options_editor" :site-id="siteId" :access-token="accessToken" /></section>
       <el-form-item label="Показывать, когда"><el-select v-model="state.visible_field" clearable placeholder="Всегда"><el-option v-for="item in controllers" :key="item.id" :label="`${item.label} (${item.code})`" :value="item.code" /></el-select></el-form-item>

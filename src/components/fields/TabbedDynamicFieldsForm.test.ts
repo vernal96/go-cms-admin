@@ -8,8 +8,8 @@ import DynamicFieldsForm from './DynamicFieldsForm.vue'
 import TabbedDynamicFieldsForm from './TabbedDynamicFieldsForm.vue'
 
 const fields: FieldDefinition[] = [
-  { key: 'title', type: 'string', label: 'Title', required: true, rules: [] },
-  { key: 'color', type: 'string', label: 'Color', required: false, rules: [] },
+  { key: 'title', type: 'string', label: 'Title', required: true, validators: [] },
+  { key: 'color', type: 'string', label: 'Color', required: false, validators: [] },
 ]
 const tabs: FieldEditorTab[] = [
   { code: 'content', label: 'Content', fields: ['title'] },

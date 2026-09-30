@@ -15,8 +15,8 @@ function definition(tabs: WidgetDefinition['editor_tabs']): WidgetDefinition {
     label: 'Settings',
     description: '',
     fields: [
-      { key: 'title', type: 'string', label: 'Title', required: false, rules: [] },
-      { key: 'color', type: 'string', label: 'Color', required: false, rules: [] },
+      { key: 'title', type: 'string', label: 'Title', required: false, validators: [] },
+      { key: 'color', type: 'string', label: 'Color', required: false, validators: [] },
     ],
     editor_tabs: tabs,
     summary_fields: [], param_types: {},

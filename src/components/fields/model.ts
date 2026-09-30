@@ -24,8 +24,13 @@ export function isMultipleField(field: FieldDefinition): boolean {
   return field.options?.multiple === true
 }
 
+export function validatorNumber(field: FieldDefinition, code: string): number {
+  const value = Number((field.validators ?? []).find(item => item.type === code)?.options?.value)
+  return Number.isFinite(value) && value >= 0 ? value : 0
+}
+
 export function singleValueField(field: FieldDefinition): FieldDefinition {
-  return { ...field, required: true, options: { ...field.options, multiple: false, min_items: 0, max_items: 0 } }
+  return { ...field, required: true, validators: (field.validators ?? []).filter(item => !['min_items', 'max_items', 'items_between', 'items_count', 'unique_items', 'contains', 'doesnt_contain'].includes(item.type)), options: { ...field.options, multiple: false } }
 }
 
 export interface FieldEditorResolver {
@@ -97,20 +102,22 @@ export function validateFieldValues(
     }
     const value = values[field.key]
     if (isMultipleField(field)) {
-      const minimum = Math.max(field.required ? 1 : 0, field.options?.min_items ?? 0)
-      const maximum = field.options?.max_items ?? 0
+      const minimum = field.required ? 1 : 0
       if (value !== null && value !== undefined && !Array.isArray(value)) {
         errors[field.key] = 'Ожидается список значений.'
         continue
       }
       const items: unknown[] = Array.isArray(value) ? value : []
-      if (items.length < minimum) errors[field.key] = minimum === 1 && field.required ? 'Поле обязательно.' : fieldErrorMessage('min_items', String(minimum))
-      if (maximum && items.length > maximum) errors[field.key] = fieldErrorMessage('max_items', String(maximum))
+      if (items.length < minimum) errors[field.key] = 'Поле обязательно.'
+      for (const validator of field.validators ?? []) {
+        const message = clientValidatorMessage(validator.type, validator.options, items)
+        if (message) { errors[field.key] = message; break }
+      }
       const seen = new Set<unknown>()
       for (const [index, item] of items.entries()) {
         const key = `${field.key}[${index}]`
         Object.assign(errors, validateFieldValues([{ ...singleValueField(field), key }], { [key]: item }, resolver))
-        if (field.type === 'select' && seen.has(item)) errors[key] = fieldErrorMessage('unique', '')
+        if (field.type === 'select' && seen.has(item)) errors[key] = fieldErrorMessage('unique')
         seen.add(item)
       }
       continue
@@ -129,10 +136,10 @@ export function validateFieldValues(
       errors[field.key] = 'Поле обязательно.'
       continue
     }
-    if (empty) continue
+    if (empty && !Array.isArray(value)) continue
 
     if ((field.type === 'select' || field.type === 'radio') && !field.options?.choices?.some(choice => choice.value === value)) {
-      errors[field.key] = fieldErrorMessage('oneof', '')
+      errors[field.key] = fieldErrorMessage('oneof')
       continue
     }
     if (
@@ -142,17 +149,9 @@ export function validateFieldValues(
       errors[field.key] = 'Введите корректный адрес электронной почты.'
       continue
     }
-    if (field.type === 'phone' && field.options?.pattern) {
-      try {
-        if (!new RegExp(field.options.pattern).test(String(value))) {
-          errors[field.key] =
-            'Введите телефон в формате E.164, например +79991234567.'
-          continue
-        }
-      } catch {
-        errors[field.key] = 'Backend передал некорректный шаблон телефона.'
-        continue
-      }
+    if (field.type === 'phone' && !/^\+[1-9][0-9]{1,14}$/.test(String(value))) {
+      errors[field.key] = 'Введите телефон в формате E.164, например +79991234567.'
+      continue
     }
     if (
       (field.type === 'int' || field.type === 'float') &&
@@ -170,51 +169,47 @@ export function validateFieldValues(
 			continue
 		}
 
-    for (const rule of field.rules) {
-      const [name, param = ''] = rule.split('=', 2)
-      const limit = Number(param)
-      if (name === 'min' && violatesMin(value, limit)) {
-        errors[field.key] = `Минимальное значение: ${param}.`
-        break
-      }
-      if (name === 'max' && violatesMax(value, limit)) {
-        errors[field.key] = `Максимальное значение: ${param}.`
-        break
-      }
+    for (const validator of field.validators ?? []) {
+      const message = clientValidatorMessage(validator.type, validator.options, value)
+      if (message) { errors[field.key] = message; break }
     }
   }
   return errors
 }
 
-export function fieldErrorMessage(rule: string, param: string): string {
-  switch (rule) {
-    case 'required':
-      return 'Поле обязательно.'
-    case 'defined':
-      return 'Поле отсутствует в актуальной схеме.'
-    case 'type':
-      return 'Значение имеет неверный тип.'
-    case 'email':
-      return 'Введите корректный адрес электронной почты.'
-    case 'e164':
-      return 'Введите телефон в формате E.164, например +79991234567.'
-    case 'pattern':
-      return 'Значение не соответствует требуемому формату.'
-    case 'oneof':
-      return 'Выбрано недопустимое значение.'
-    case 'min_items':
-      return `Минимум значений: ${param}.`
-    case 'max_items':
-      return `Максимум значений: ${param}.`
-    case 'unique':
-      return 'Значение уже выбрано.'
-    case 'min':
-      return `Минимальное значение: ${param}.`
-    case 'max':
-      return `Максимальное значение: ${param}.`
-    default:
-      return `Значение не прошло проверку «${rule}»${param ? ` (${param})` : ''}.`
+export function fieldErrorMessage(code: string, params: Record<string, unknown> = {}): string {
+  const value = params.value ?? ''
+  switch (code) {
+    case 'required': return 'Поле обязательно.'
+    case 'defined': return 'Поле отсутствует в актуальной схеме.'
+    case 'type': return 'Значение имеет неверный тип.'
+    case 'email': return 'Введите корректный адрес электронной почты.'
+    case 'e164': return 'Введите телефон в формате E.164, например +79991234567.'
+    case 'pattern': case 'regex': return 'Значение не соответствует требуемому формату.'
+    case 'oneof': case 'in': return 'Выбрано недопустимое значение.'
+    case 'not_in': return 'Значение недопустимо.'
+    case 'min_items': return `Минимум значений: ${value}.`
+    case 'max_items': return `Максимум значений: ${value}.`
+    case 'unique': case 'unique_items': return 'Значение уже выбрано.'
+    case 'min': return `Минимальное значение: ${value}.`
+    case 'max': return `Максимальное значение: ${value}.`
+    case 'min_length': return `Минимум символов: ${value}.`
+    case 'max_length': return `Максимум символов: ${value}.`
+    default: return `Значение не прошло проверку «${code}».`
   }
+}
+
+function clientValidatorMessage(code: string, options: Record<string, unknown> | undefined, value: unknown): string | undefined {
+  const limit = Number(options?.value)
+  if (code === 'min' && typeof value === 'number' && Number.isFinite(limit) && value < limit) return fieldErrorMessage(code, options)
+  if (code === 'max' && typeof value === 'number' && Number.isFinite(limit) && value > limit) return fieldErrorMessage(code, options)
+  if (code === 'min_length' && typeof value === 'string' && Number.isFinite(limit) && [...value].length < limit) return fieldErrorMessage(code, options)
+  if (code === 'max_length' && typeof value === 'string' && Number.isFinite(limit) && [...value].length > limit) return fieldErrorMessage(code, options)
+  if (code === 'min_items' && Array.isArray(value) && Number.isFinite(limit) && value.length < limit) return fieldErrorMessage(code, options)
+  if (code === 'max_items' && Array.isArray(value) && Number.isFinite(limit) && value.length > limit) return fieldErrorMessage(code, options)
+  if (code === 'in' && Array.isArray(options?.values) && !options.values.includes(value)) return fieldErrorMessage(code, options)
+  if (code === 'not_in' && Array.isArray(options?.values) && options.values.includes(value)) return fieldErrorMessage(code, options)
+  return undefined
 }
 
 function isEmpty(value: unknown): boolean {
@@ -224,18 +219,4 @@ function isEmpty(value: unknown): boolean {
     value === '' ||
     (Array.isArray(value) && value.length === 0)
   )
-}
-
-function violatesMin(value: unknown, limit: number): boolean {
-  if (!Number.isFinite(limit)) return false
-  return typeof value === 'number'
-    ? value < limit
-    : String(value).length < limit
-}
-
-function violatesMax(value: unknown, limit: number): boolean {
-  if (!Number.isFinite(limit)) return false
-  return typeof value === 'number'
-    ? value > limit
-    : String(value).length > limit
 }

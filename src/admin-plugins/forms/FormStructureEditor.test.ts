@@ -14,10 +14,10 @@ afterEach(() => vi.resetAllMocks())
 function fixture(): FormEditorResponse {
   return {
     form: { id: 9, site_id: 5, code: 'test', name: 'Test', description: '', enabled: true, created_at: '', updated_at: '' },
-    fields: [{ id: 1, form_id: 9, code: 'email', type: 'email', label: 'Email', required: false, rules: [], result_label: '', show_in_results: true, show_on_site: false, result_position: 0, created_at: '', updated_at: '' }],
+    fields: [{ id: 1, form_id: 9, code: 'email', type: 'email', label: 'Email', required: false, validators: [], result_label: '', show_in_results: true, show_on_site: false, result_position: 0, created_at: '', updated_at: '' }],
     elements: [], statuses: [], actions: [],
     layout: [{ id: 10, form_id: 9, kind: 'field', field_id: 1, position: 0 }, { id: 11, form_id: 9, kind: 'container', container_type: 'group', position: 1, config: { label: 'Контакты' } }],
-    available_field_types: ['email', 'string'].map(code => ({code,label:code,options:[]})), available_element_types: [{ code: 'text', label: 'Текст', fields: [] }], available_container_types: [{ code: 'group', label: 'Группа' }, { code: 'slide', label: 'Слайд' }], available_action_types: [],
+    available_validator_types: [], available_field_types: ['email', 'string'].map(code => ({code,label:code,options:[]})), available_element_types: [{ code: 'text', label: 'Текст', fields: [] }], available_container_types: [{ code: 'group', label: 'Группа' }, { code: 'slide', label: 'Слайд' }], available_action_types: [],
   }
 }
 function setup(permissions = new Set(['forms.form.update'])) {
@@ -96,7 +96,7 @@ describe('Forms structure panel', () => {
     const { wrapper, detail } = setup()
     const fromAPI = JSON.parse(JSON.stringify(detail)) as FormEditorResponse
     // Empty Go slices arrive as JSON null in the existing HTTP contract.
-    Object.assign(fromAPI.fields[0]!, { rules: null, required: true })
+    Object.assign(fromAPI.fields[0]!, { validators: null, required: true })
     await wrapper.setProps({ detail: fromAPI })
     await choose(wrapper, 10)
     expect(wrapper.getComponent(FormFieldEditor).findAllComponents(ElInput).map(item => item.get('input'))[0]!.element.value).toBe('email')

@@ -45,8 +45,8 @@ export interface APIErrorEnvelope {
 
 export interface FieldValidationError {
   key: string
-  rule: string
-  param: string
+  code: string
+  params?: Record<string, unknown>
 }
 
 export type AuthStatus =

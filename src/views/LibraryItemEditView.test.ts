@@ -74,7 +74,7 @@ describe('LibraryItemEditView', () => {
         types: [{ code: 'library', label: 'Библиотека', capabilities: { owns_library_items: true } }],
         templates: [{
           code: 'article', label: 'Article', supports_resource_widgets: true,
-          fields: [{ key: 'subtitle', type: 'string', label: 'Subtitle', required: false, rules: [] }],
+          fields: [{ key: 'subtitle', type: 'string', label: 'Subtitle', required: false, validators: [] }],
 			editor_tabs: [{ code: 'content', label: 'Контент', fields: ['subtitle'] }],
         }],
         widgets: [],

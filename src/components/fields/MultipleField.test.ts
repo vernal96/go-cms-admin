@@ -9,7 +9,7 @@ import { adminPluginRegistryKey } from '../../admin-plugins/context'
 import DynamicField from './DynamicField.vue'
 import { createFieldValues, validateFieldValues } from './model'
 
-const field: FieldDefinition = { key: 'items', type: 'string', label: 'Items', required: false, rules: [], options: { multiple: true, min_items: 1, max_items: 3 } }
+const field: FieldDefinition = { key: 'items', type: 'string', label: 'Items', required: false, validators: [{ type: 'min_items', options: { value: 1 } }, { type: 'max_items', options: { value: 3 } }], options: { multiple: true } }
 describe('multiple standard fields', () => {
   it('adds, edits, reorders and removes values while retaining editor identity', async () => {
     const model = ref<unknown[]>(['One', 'Two'])
@@ -47,11 +47,11 @@ describe('multiple standard fields', () => {
   it('validates count, elements, numeric zero and nested paths', () => {
     expect(validateFieldValues([field], { items: [] })).toHaveProperty('items')
     expect(validateFieldValues([field], { items: [''] })).toHaveProperty('items[0]')
-    const number = { ...field, type: 'int', rules: ['min=0', 'max=10'] }
+    const number = { ...field, type: 'int', validators: [{ type: 'min', options: { value: 0 } }, { type: 'max', options: { value: 10 } }] }
     expect(validateFieldValues([number], { items: [0, 3] })).toEqual({})
     expect(validateFieldValues([number], { items: [0, 11] })).toHaveProperty('items[1]')
     expect(validateFieldValues([{ ...field, type: 'email' }], { items: ['a@example.test', 'invalid'] })).toHaveProperty('items[1]')
-    const nested = { key: 'rows', type: 'repeater', label: 'Rows', required: false, rules: [], options: { fields: [number] } }
+    const nested = { key: 'rows', type: 'repeater', label: 'Rows', required: false, validators: [], options: { fields: [number] } }
     expect(validateFieldValues([nested], { rows: [{ items: [11] }] })).toHaveProperty('rows[0].items[0]')
   })
   it('keeps a multi-select and displays indexed choice errors', () => {

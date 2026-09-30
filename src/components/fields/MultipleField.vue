@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { ElButton, ElFormItem } from 'element-plus'
 import type { FieldDefinition } from '../../types/admin'
 import DynamicField from './DynamicField.vue'
-import { createFieldValues, singleValueField, type DynamicFieldErrors } from './model'
+import { createFieldValues, singleValueField, validatorNumber, type DynamicFieldErrors } from './model'
 
 const props = defineProps<{
   field: FieldDefinition
@@ -18,8 +18,8 @@ const emit = defineEmits<{ 'update:modelValue': [value: unknown[]] }>()
 const items = computed<unknown[]>(() => Array.isArray(props.modelValue) ? props.modelValue : [])
 const itemField = computed(() => singleValueField(props.field))
 const path = computed(() => props.fieldPath ?? props.field.key)
-const maximum = computed(() => props.field.options?.max_items ?? 0)
-const minimum = computed(() => Math.max(props.field.required ? 1 : 0, props.field.options?.min_items ?? 0))
+const maximum = computed(() => validatorNumber(props.field, 'max_items'))
+const minimum = computed(() => Math.max(props.field.required ? 1 : 0, validatorNumber(props.field, 'min_items')))
 let nextID = 0
 const ids = ref<number[]>([])
 watch(() => items.value.length, length => {

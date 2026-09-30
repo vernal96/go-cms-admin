@@ -13,7 +13,7 @@ const model = defineModel<Record<string, unknown>>({ required: true })
 const registry = inject(adminPluginRegistryKey, undefined)
 const customEditor = computed(() => props.editor ? registry?.configEditor(props.editor) : undefined)
 const custom = ref<{ validate?: () => void }>()
-const fields = computed<FieldDefinition[]>(() => props.fields.map(field => ({ ...field, rules: field.rules ?? [] })))
+const fields = computed<FieldDefinition[]>(() => props.fields.map(field => ({ ...field, validators: field.validators ?? [] })))
 const errors = ref<Record<string,string>>({})
 watch([() => props.fields, model],([fields]) => {
  const values = {...model.value}

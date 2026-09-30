@@ -7,7 +7,7 @@ import FilePickerDialog from '../files/FilePickerDialog.vue'
 import ImageEditor from '../images/ImageEditor.vue'
 import { adminAccessTokenKey, adminPermissionsKey } from '../../admin-context'
 import { createFieldValues, validateFieldValues } from './model'
-const field = { key: 'page_media', label: 'Медиа', type: 'media', editor: 'media', required: false, rules: [] }
+const field = { key: 'page_media', label: 'Медиа', type: 'media', editor: 'media', required: false, validators: [] }
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
 it('uses the shared editor and stores the created Media ID instead of File ID', async () => {
  const fetcher = vi.fn(async (url: string) => {

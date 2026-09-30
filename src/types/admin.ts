@@ -94,13 +94,10 @@ export interface FieldOptions {
   settings_code?: string
   settings_fields?: FieldDefinition[]
   fields?: FieldDefinition[]
-  min_items?: number
-  max_items?: number
   [key: string]: unknown
   step?: number
   choices?: FieldChoice[]
   multiple?: boolean
-  pattern?: string
   storages?: string[]
   mime_types?: string[]
 }
@@ -171,7 +168,7 @@ export interface FieldDefinition {
   type: FieldType | string
   label: string
   required: boolean
-  rules: string[]
+  validators: ValidatorDefinition[]
   options?: FieldOptions
 	editor?: string
 	visible_when?: { field: string; value: unknown }
@@ -628,8 +625,18 @@ export interface ConfigField {
  type: string
  required: boolean
  editor?: string
- rules?: string[]
+ validators?: ValidatorDefinition[]
  options?: FieldOptions
+}
+export interface ValidatorDefinition { type: string; options?: Record<string, unknown> }
+export interface ValidatorMetadata {
+ code: string
+ label: string
+ options: ConfigField[]
+ options_editor?: string
+ field_types?: string[]
+ multiple?: boolean
+ applicability?: Array<{ field_types?: string[]; multiple?: boolean }>
 }
 export interface FieldTypeMetadata {
  code: string

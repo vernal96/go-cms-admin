@@ -6,7 +6,7 @@ import WidgetParamFields from './WidgetParamFields.vue'
 it('offers only matching semantic types and cardinality and clears the literal when binding', async () => {
   const wrapper = shallowMount(WidgetParamFields, {
     props: {
-      fields: [{ key: 'title', label: 'Title', type: 'string', required: true, rules: [] }],
+      fields: [{ key: 'title', label: 'Title', type: 'string', required: true, validators: [] }],
       modelValue: { title: 'Manual' }, bindings: {}, errors: {}, siteId: 7, accessToken: 'token',
       paramTypes: { title: { type: 'string', multiple: false } },
       sources: [
@@ -28,7 +28,7 @@ it('offers only matching semantic types and cardinality and clears the literal w
 it('keeps dependent editors available when the visibility controller is resolved at render time', () => {
   const wrapper = shallowMount(WidgetParamFields, {
     props: {
-      fields: [{ key: 'detail', label: 'Detail', type: 'string', required: false, rules: [], visible_when: { field: 'enabled', value: true } }],
+      fields: [{ key: 'detail', label: 'Detail', type: 'string', required: false, validators: [], visible_when: { field: 'enabled', value: true } }],
       modelValue: {}, bindings: { enabled: { kind: 'resource_field', key: 'enabled' } },
       errors: {}, siteId: 7, accessToken: 'token', paramTypes: {}, sources: [],
     }, global: { renderStubDefaultSlot: true },

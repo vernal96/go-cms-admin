@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { ElButton, ElFormItem } from 'element-plus'
 import type { FieldDefinition } from '../../types/admin'
 import DynamicField from './DynamicField.vue'
-import { createFieldValues, type DynamicFieldErrors, type DynamicValues } from './model'
+import { createFieldValues, validatorNumber, type DynamicFieldErrors, type DynamicValues } from './model'
 
 const props = defineProps<{
   field: FieldDefinition
@@ -17,8 +17,8 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [value: DynamicValues[]] }>()
 const fields = computed(() => props.field.options?.fields ?? [])
 const rows = computed<DynamicValues[]>(() => Array.isArray(props.modelValue) ? props.modelValue : [])
-const minimum = computed(() => props.field.options?.min_items ?? 0)
-const maximum = computed(() => props.field.options?.max_items ?? 0)
+const minimum = computed(() => validatorNumber(props.field, 'min_items'))
+const maximum = computed(() => validatorNumber(props.field, 'max_items'))
 const canAdd = computed(() => !maximum.value || rows.value.length < maximum.value)
 const path = computed(() => props.fieldPath ?? props.field.key)
 // UI identity follows a row across edits and moves; it never enters saved data.

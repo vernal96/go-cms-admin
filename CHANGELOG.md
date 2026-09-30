@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Replace string field rules with typed validator definitions throughout admin DTOs and dynamic fields. Forms and Mail editors configure validators from site-scoped backend metadata and retain contributed custom options.
+- Keep backend validation authoritative while checking simple built-ins locally; structured field errors carry codes and parameters.
+
+
 ## 0.2.0
 
 - Expose plugins, explicit overrides and router history through createAdminApp/mountAdmin. Each application has its own router and registry.

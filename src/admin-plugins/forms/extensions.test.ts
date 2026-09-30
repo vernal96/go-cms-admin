@@ -11,7 +11,7 @@ import FormActionDialog from './FormActionDialog.vue'
 
 describe('contributed configuration editors', () => {
  it('preserves the backend int field step after opening and saving', async () => {
-  const field:FormField={id:1,form_id:1,code:'count',type:'int',label:'Count',required:false,rules:[],options:{step:2},result_label:'',show_on_site:false,show_in_results:false,result_position:0,created_at:'',updated_at:''}
+  const field:FormField={id:1,form_id:1,code:'count',type:'int',label:'Count',required:false,validators: [],options:{step:2},result_label:'',show_on_site:false,show_in_results:false,result_position:0,created_at:'',updated_at:''}
   const wrapper=mount(FormFieldEditor,{props:{disabled:false,initialType:'int',field,fields:[],availableTypes:[{code:'int',label:'Целое число',editor:'int',options:[{key:'step',label:'Шаг',type:'int',required:false}]}]}})
   await flushPromises()
   expect(wrapper.findComponent({name:'NumberField'}).exists()).toBe(true)
@@ -19,10 +19,20 @@ describe('contributed configuration editors', () => {
   wrapper.unmount()
  })
  it('preserves contributed option objects and renders their declared controls',async () => {
-  const field:FormField={id:1,form_id:1,code:'custom',type:'example.custom',label:'Custom',required:false,rules:[],options:{limit:3,enabled:false,nested:{tags:['a']}},result_label:'',show_on_site:false,show_in_results:false,result_position:0,created_at:'',updated_at:''}
+  const field:FormField={id:1,form_id:1,code:'custom',type:'example.custom',label:'Custom',required:false,validators: [],options:{limit:3,enabled:false,nested:{tags:['a']}},result_label:'',show_on_site:false,show_in_results:false,result_position:0,created_at:'',updated_at:''}
   const wrapper=mount(FormFieldEditor,{props:{disabled:false,initialType:field.type,field,fields:[],availableTypes:[{code:field.type,label:'Custom',options:[{key:'limit',label:'Limit',type:'int',required:false},{key:'enabled',label:'Enabled',type:'checkbox',required:false},{key:'nested',label:'Nested',type:'json',required:false}]}]}})
   await flushPromises()
   expect((wrapper.vm as unknown as {payload():FormField}).payload().options).toEqual(field.options)
+  wrapper.unmount()
+ })
+ it('round-trips contributed validator options and rejects an incompatible type change', async () => {
+  const field: FormField = { id: 1, form_id: 1, code: 'slug', type: 'string', label: 'Slug', required: false, validators: [{ type: 'example.prefix', options: { prefix: 'go-' } }], result_label: '', show_on_site: false, show_in_results: false, result_position: 0, created_at: '', updated_at: '' }
+  const wrapper = mount(FormFieldEditor, { props: { disabled: false, initialType: 'string', field, fields: [], availableTypes: [{ code: 'string', label: 'Строка', options: [] }, { code: 'int', label: 'Целое', options: [] }], availableValidators: [{ code: 'example.prefix', label: 'Префикс', options: [{ key: 'prefix', label: 'Префикс', type: 'string', required: true }], field_types: ['string'] }] } })
+  await flushPromises()
+  expect((wrapper.vm as unknown as { payload(): FormField }).payload().validators).toEqual(field.validators)
+  wrapper.findAllComponents({ name: 'ElSelect' })[0]!.vm.$emit('update:modelValue', 'int')
+  await flushPromises()
+  expect(() => (wrapper.vm as unknown as { payload(): FormField }).payload()).toThrow('несовместим')
   wrapper.unmount()
  })
  it('round-trips typed generic action settings',async () => {

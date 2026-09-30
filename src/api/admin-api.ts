@@ -160,8 +160,8 @@ async function responseError(response: Response): Promise<AdminAPIError> {
         fieldErrors = payload.error.details.fields.filter(
           (item): item is FieldValidationError =>
             typeof item?.key === 'string' &&
-            typeof item?.rule === 'string' &&
-            typeof item?.param === 'string',
+            typeof item?.code === 'string' &&
+            (item?.params === undefined || (typeof item.params === 'object' && item.params !== null && !Array.isArray(item.params))),
         )
       }
     }

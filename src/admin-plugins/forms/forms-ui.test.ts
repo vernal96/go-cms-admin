@@ -33,9 +33,9 @@ function router() { return createRouter({ history: createMemoryHistory(), routes
 const editor: FormEditorResponse = {
   form: { id: 9, site_id: 5, code: 'feedback', name: 'Обратная связь', description: '', enabled: true, created_at: '', updated_at: '' },
   fields: [
-    { id: 1, form_id: 9, code: 'privacy_consent', type: 'forms.consent', label: 'Согласие', required: true, rules: [], options: {}, result_label: 'Согласие', show_in_results: true, show_on_site: false, result_position: 0, created_at: '', updated_at: '' },
-    { id: 2, form_id: 9, code: 'captcha', type: 'forms.captcha', label: 'CAPTCHA', required: true, rules: [], options: {}, result_label: '', show_in_results: false, show_on_site: false, result_position: 1, created_at: '', updated_at: '' },
-    { id: 3, form_id: 9, code: 'email', type: 'email', label: 'Email', required: true, rules: [], result_label: 'Контакт', show_in_results: true, show_on_site: false, result_position: 2, created_at: '', updated_at: '' },
+    { id: 1, form_id: 9, code: 'privacy_consent', type: 'forms.consent', label: 'Согласие', required: true, validators: [], options: {}, result_label: 'Согласие', show_in_results: true, show_on_site: false, result_position: 0, created_at: '', updated_at: '' },
+    { id: 2, form_id: 9, code: 'captcha', type: 'forms.captcha', label: 'CAPTCHA', required: true, validators: [], options: {}, result_label: '', show_in_results: false, show_on_site: false, result_position: 1, created_at: '', updated_at: '' },
+    { id: 3, form_id: 9, code: 'email', type: 'email', label: 'Email', required: true, validators: [], result_label: 'Контакт', show_in_results: true, show_on_site: false, result_position: 2, created_at: '', updated_at: '' },
   ],
   elements: [{ id: 4, form_id: 9, code: 'submit', type: 'submit_button', config: { label: 'Отправить' }, created_at: '', updated_at: '' }],
   layout: [
@@ -45,7 +45,7 @@ const editor: FormEditorResponse = {
     { id: 13, form_id: 9, kind: 'element', element_id: 4, position: 3 },
   ],
   statuses: [{ id: 5, form_id: 9, code: 'new', name: 'Новый', color: '#409eff', position: 0, is_default: true, created_at: '', updated_at: '' }],
-  actions: [], available_field_types: ['string', 'email', 'forms.captcha', 'forms.consent', 'forms.upload'].map(code => ({code,label:code,options:[]})),
+  actions: [], available_validator_types: [], available_field_types: ['string', 'email', 'forms.captcha', 'forms.consent', 'forms.upload'].map(code => ({code,label:code,options:[]})),
   available_element_types: [{ code: 'text', label: 'Текст', fields: [] }, { code: 'submit_button', label: 'Кнопка', fields: [] }],
   available_container_types: [{ code: 'group', label: 'Группа' }, { code: 'slide', label: 'Слайд' }],
   available_action_types: [{ code: 'mail', label: 'Письмо', available: true, editor_code: 'forms.mail', fields: [] }],
@@ -103,7 +103,7 @@ describe('Forms admin UI', () => {
       id: 3, site_id: 5, code: 'feedback', name: 'Feedback', enabled: true,
       from: { name: '', email: 'noreply@example.test' }, to: [], cc: [], bcc: [], reply_to: null,
       subject: '', content_type: 'text', text_body: '', html_body: '', attachments: [],
-      variables: [{ key: 'email', type: 'email', label: 'Email', required: true, rules: [] }], created_at: '', updated_at: '',
+      variables: [{ key: 'email', type: 'email', label: 'Email', required: true, validators: [] }], created_at: '', updated_at: '',
     }], pagination: { page: 1, per_page: 100, total: 1 } })))
     const wrapper = mount(FormActionDialog, { global:{provide:{[adminPluginRegistryKey as symbol]:new AdminPluginRegistry([{code:'forms',configEditors:{'forms.mail':MailActionEditor}}])}}, props: {
       modelValue: true, action: { id: 1, form_id: 9, code: 'mail', name: 'Письмо', enabled: true, trigger: { type: 'submitted' }, action_type: 'mail', config: { template_code: 'feedback', values: { email: 'email' }, attachments: [] }, position: 0, created_at: '', updated_at: '' },

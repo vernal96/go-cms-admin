@@ -6,7 +6,7 @@ import MediaSettingsDialog from './MediaSettingsDialog.vue'
 import DynamicFieldsForm from '../fields/DynamicFieldsForm.vue'
 import DynamicField from '../fields/DynamicField.vue'
 import { adminPermissionsKey } from '../../admin-context'
-const fields = [{ key: 'alt', label: 'Alt', type: 'string', required: false, rules: [] }]
+const fields = [{ key: 'alt', label: 'Alt', type: 'string', required: false, validators: [] }]
 const state = { code: 'image', values: { alt: 'original' }, fields, expected_updated_at: '2026-09-16T00:00:00Z' }
 const props = { modelValue: true, mediaId: 7, siteId: 2, settingsCode: 'image', accessToken: 'token' }
 const stubs = { ElDialog: { template: '<div><slot /><slot name="footer" /></div>' } }
@@ -38,7 +38,7 @@ it('cancel never writes the draft', async () => {
 })
 it.each([422, 409])('preserves the draft on HTTP %s and does not close', async status => {
  vi.stubGlobal('fetch', vi.fn(async (_url, init) => init?.method === 'PUT'
-  ? new Response(JSON.stringify({ error: { code: 'validation_error', message: 'Invalid', details: { fields: [{ key: 'alt', rule: 'max', param: '3' }] } } }), { status })
+  ? new Response(JSON.stringify({ error: { code: 'validation_error', message: 'Invalid', details: { fields: [{ key: 'alt', code: 'max', params: { value: 3 } }] } } }), { status })
   : new Response(JSON.stringify(state))))
  const wrapper = mount(MediaSettingsDialog, { props, global: { stubs } })
  await flushPromises()
@@ -63,7 +63,7 @@ it('ignores a late response after switching Media', async () => {
 it.each([false, true])('passes the named settings and site through media lists (multiple=%s)', async multiple => {
  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ editable: false, current_file: { id: 1 } }))))
  vi.stubGlobal('URL', { createObjectURL: () => 'blob:test', revokeObjectURL: vi.fn() })
- const wrapper = mount(DynamicField, { props: { field: { key: 'photo', label: 'Photo', type: 'media', required: false, rules: [], options: { settings_code: 'image', multiple } }, siteId: 2, accessToken: 'token', modelValue: multiple ? [7, 8] : 7 }, global: { stubs: { FilePickerDialog: true, ImageEditor: true, MediaSettingsDialog: true }, provide: { [adminPermissionsKey as symbol]: ref(new Set(['core.media.read', 'core.media.update'])) } } })
+ const wrapper = mount(DynamicField, { props: { field: { key: 'photo', label: 'Photo', type: 'media', required: false, validators: [], options: { settings_code: 'image', multiple } }, siteId: 2, accessToken: 'token', modelValue: multiple ? [7, 8] : 7 }, global: { stubs: { FilePickerDialog: true, ImageEditor: true, MediaSettingsDialog: true }, provide: { [adminPermissionsKey as symbol]: ref(new Set(['core.media.read', 'core.media.update'])) } } })
  await flushPromises()
  const buttons = wrapper.findAll('button').filter(b => b.text() === 'Настройки')
  expect(buttons).toHaveLength(multiple ? 2 : 1)

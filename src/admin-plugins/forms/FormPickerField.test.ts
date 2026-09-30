@@ -69,7 +69,7 @@ describe('Forms widget editors', () => {
   it('resolves module editors generically and supplies the page size default', async () => {
     const registry = new AdminPluginRegistry([{ code: 'forms', fieldEditors: { 'forms.results-page-size': ResultsPageSizeField } }])
     const wrapper = mount(DynamicField, {
-      props: { field: { key: 'per_page', type: 'int', label: 'На странице', required: false, rules: [], editor: 'forms.results-page-size' }, modelValue: null },
+      props: { field: { key: 'per_page', type: 'int', label: 'На странице', required: false, validators: [], editor: 'forms.results-page-size' }, modelValue: null },
       global: { provide: { [adminPluginRegistryKey as symbol]: registry } },
     })
     await flushPromises()

@@ -68,7 +68,7 @@ async function save() {
   } catch (e) {
     if (current !== generation) return
     if (e instanceof AdminAPIError) {
-      for (const item of e.fieldErrors) errors.value[item.key] = fieldErrorMessage(item.rule, item.param)
+      for (const item of e.fieldErrors) errors.value[item.key] = fieldErrorMessage(item.code, item.params)
       conflict.value = e.status === 409
     }
     error.value = conflict.value ? 'Изображение изменилось. Скопируйте введённые значения при необходимости и загрузите актуальные настройки.' : e instanceof Error ? e.message : 'Не удалось сохранить настройки.'

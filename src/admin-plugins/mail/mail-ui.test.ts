@@ -160,8 +160,8 @@ describe('Mail admin UI', () => {
       props: {
         modelValue: [{ source: 'variable', variable: '', filename_template: '' }, { source: 'site', variable: '', filename_template: '' }],
         variables: [
-          { key: 'document', type: 'file', label: 'Документ', required: false, rules: [] },
-          { key: 'name', type: 'string', label: 'Имя', required: false, rules: [] },
+          { key: 'document', type: 'file', label: 'Документ', required: false, validators: [] },
+          { key: 'name', type: 'string', label: 'Имя', required: false, validators: [] },
         ],
         siteVariables: [{ variable: 'site.field.contract', label: 'Договор', type: 'file', source: 'site' }],
         accessToken: 'token', permissions,
@@ -183,7 +183,7 @@ describe('Mail admin UI', () => {
         id: 3, site_id: 5, code: 'welcome', name: 'Welcome', enabled: true,
         from: { name: '', email: 'noreply@example.test' }, to: [{ name: '', email: '{{data.email}}' }], cc: [], bcc: [], reply_to: null,
         subject: 'Hello', content_type: 'html', text_body: '', html_body: '<p>{{data.name}}</p>', attachments: [],
-        variables: [{ key: 'email', type: 'email', label: 'Email', required: false, rules: [] }], created_at: '', updated_at: '',
+        variables: [{ key: 'email', type: 'email', label: 'Email', required: false, validators: [] }], created_at: '', updated_at: '',
       }], pagination: { page: 1, per_page: 100, total: 1 } })
       if (url.endsWith('/preview')) return response({
         from: { name: '', email: 'noreply@example.test' }, to: [{ name: '', email: 'person@example.test' }], cc: [], bcc: [],
