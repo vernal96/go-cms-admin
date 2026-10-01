@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useServerValidation } from '../fields/server-validation'
-import { ElButton, ElEmpty, ElMessage, ElMessageBox } from 'element-plus'
+import { ElButton, ElRow, ElCol, ElEmpty, ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { AdminAPIError, adminRequest, adminRequestVoid } from '../../api/admin-api'
 import type {
   ResourceTemplate,
   ResourceWidget,
   WidgetArea,
+  WidgetAreaDescriptor,
   WidgetDefinition,
 } from '../../types/admin'
-import { moveWidget, normalizeWidgetPositions, widgetOrder, type WidgetSettingsValue } from './model'
+import { moveWidget, normalizeWidgetPositions, widgetOrder, effectiveArea, visibleAreas, sortWidgets, type WidgetSettingsValue } from './model'
 import WidgetCard from './WidgetCard.vue'
 import WidgetPickerDialog from './WidgetPickerDialog.vue'
 import WidgetSettingsDialog from './WidgetSettingsDialog.vue'
@@ -35,25 +36,23 @@ const pickerOpen = ref(false)
 const settingsOpen = ref(false)
 const saving = ref(false)
 const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
-const pendingArea = ref<WidgetArea>('body')
+const pendingArea = ref<WidgetArea>('default')
 const selectedDefinition = ref<WidgetDefinition | null>(null)
 const editingWidget = ref<ResourceWidget | null>(null)
 const draggingID = ref<number | null>(null)
 const activeTarget = ref<{ area: WidgetArea; index: number } | null>(null)
 const reordering = ref(false)
+const pendingAreas = ref<WidgetAreaDescriptor[] | null>(null)
 
 watch(() => [props.siteId, props.resourceId, settingsOpen.value, selectedDefinition.value, editingWidget.value], clearValidation)
 
 const widgetDragType = 'application/x-go-cms-widget'
 
-const allowedAreas = computed(() => props.template.widget_areas)
-const body = computed(() => widgetsIn('body'))
-const sidebar = computed(() => widgetsIn('sidebar'))
+const areas = computed(() => pendingAreas.value ?? visibleAreas(props.template.widget_areas, props.modelValue))
 
 function widgetsIn(area: WidgetArea): ResourceWidget[] {
-  return props.modelValue
-    .filter((widget) => widget.area === area)
-    .sort((left, right) => left.position - right.position)
+  return sortWidgets(props.modelValue)
+    .filter((widget) => effectiveArea(widget.area, props.template.widget_areas) === area)
 }
 
 function definition(code: string): WidgetDefinition {
@@ -171,6 +170,7 @@ async function drop(area: WidgetArea, index: number, event: DragEvent): Promise<
   const previous = normalizeWidgetPositions(props.modelValue)
   const moved = moveWidget(previous, id, area, index)
   finishDrag()
+  pendingAreas.value = areas.value
   reordering.value = true
   emit('update:modelValue', moved)
   try {
@@ -186,11 +186,15 @@ async function drop(area: WidgetArea, index: number, event: DragEvent): Promise<
     handleError(error, 'Не удалось изменить порядок виджетов.')
   } finally {
     reordering.value = false
+    pendingAreas.value = null
   }
 }
 
 function canDropAt(area: WidgetArea, index: number, id = draggingID.value): boolean {
-  if (!props.canUpdate || reordering.value || id === null) return false
+  if (!props.canUpdate || reordering.value || id === null || !areas.value.some((item) => item.code === area && item.supports_resource_widgets)) return false
+  // Recovered bindings retain their stored ordering after explicit default
+  // bindings. Dropping into default targets that explicit prefix only.
+  if (area === 'default' && index > props.modelValue.filter((item) => item.area === 'default').length) return false
   const previous = normalizeWidgetPositions(props.modelValue)
   const moved = moveWidget(previous, id, area, index)
   const before = widgetOrder(previous)
@@ -206,7 +210,7 @@ function isActiveTarget(area: WidgetArea, index: number): boolean {
 }
 
 function areaCanDrop(area: WidgetArea): boolean {
-  const count = area === 'body' ? body.value.length : sidebar.value.length
+  const count = widgetsIn(area).length
   for (let index = 0; index <= count; index++) {
     if (canDropAt(area, index)) return true
   }
@@ -229,36 +233,38 @@ function handleError(error: unknown, fallback: string): void {
 
 <template>
   <div class="resource-widgets-editor">
+    <el-row :gutter="22">
+      <el-col v-for="area in areas" :key="area.code" :xs="24" :sm="24" :md="area.admin_span" class="widget-area-column">
     <section
-      v-if="allowedAreas.includes('body')"
       class="widget-area"
+      :data-area="area.code"
       :class="{
-        'is-drag-available': areaCanDrop('body'),
-        'is-drop-area': activeTarget?.area === 'body',
+        'is-drag-available': areaCanDrop(area.code),
+        'is-drop-area': activeTarget?.area === area.code,
         'is-reordering': reordering,
       }"
     >
       <header>
-        <div><h3>Body</h3><p>Основная область страницы</p></div>
-        <el-button :icon="Plus" :disabled="!canUpdate || reordering" @click="add('body')">Добавить виджет</el-button>
+        <div><h3>{{ area.label }}</h3></div>
+        <el-button v-if="area.supports_resource_widgets" :icon="Plus" :disabled="!canUpdate || reordering" @click="add(area.code)">Добавить виджет</el-button>
       </header>
       <div
-        v-if="!body.length"
+        v-if="!widgetsIn(area.code).length"
         class="widget-empty-drop-target"
-        :class="{ 'is-available': canDropAt('body', 0), 'is-active': isActiveTarget('body', 0) }"
-        @dragenter.stop="activateDropTarget('body', 0, $event)"
-        @dragover.stop="activateDropTarget('body', 0, $event)"
-        @dragleave.stop="leaveDropTarget('body', 0, $event)"
-        @drop.stop="drop('body', 0, $event)"
-      ><el-empty description="В основной области нет виджетов" :image-size="70" /></div>
-      <template v-for="(item, index) in body" :key="item.id">
+        :class="{ 'is-available': canDropAt(area.code, 0), 'is-active': isActiveTarget(area.code, 0) }"
+        @dragenter.stop="activateDropTarget(area.code, 0, $event)"
+        @dragover.stop="activateDropTarget(area.code, 0, $event)"
+        @dragleave.stop="leaveDropTarget(area.code, 0, $event)"
+        @drop.stop="drop(area.code, 0, $event)"
+      ><el-empty description="В разделе нет виджетов" :image-size="70" /></div>
+      <template v-for="(item, index) in widgetsIn(area.code)" :key="item.id">
         <div
           class="widget-drop-target"
-          :class="{ 'is-available': canDropAt('body', index), 'is-active': isActiveTarget('body', index) }"
-          @dragenter.stop="activateDropTarget('body', index, $event)"
-          @dragover.stop="activateDropTarget('body', index, $event)"
-          @dragleave.stop="leaveDropTarget('body', index, $event)"
-          @drop.stop="drop('body', index, $event)"
+          :class="{ 'is-available': canDropAt(area.code, index), 'is-active': isActiveTarget(area.code, index) }"
+          @dragenter.stop="activateDropTarget(area.code, index, $event)"
+          @dragover.stop="activateDropTarget(area.code, index, $event)"
+          @dragleave.stop="leaveDropTarget(area.code, index, $event)"
+          @drop.stop="drop(area.code, index, $event)"
         />
         <widget-card
           :widget="item"
@@ -273,69 +279,17 @@ function handleError(error: unknown, fallback: string): void {
         />
       </template>
       <div
-        v-if="body.length"
+        v-if="widgetsIn(area.code).length"
         class="widget-drop-target"
-        :class="{ 'is-available': canDropAt('body', body.length), 'is-active': isActiveTarget('body', body.length) }"
-        @dragenter.stop="activateDropTarget('body', body.length, $event)"
-        @dragover.stop="activateDropTarget('body', body.length, $event)"
-        @dragleave.stop="leaveDropTarget('body', body.length, $event)"
-        @drop.stop="drop('body', body.length, $event)"
+        :class="{ 'is-available': canDropAt(area.code, widgetsIn(area.code).length), 'is-active': isActiveTarget(area.code, widgetsIn(area.code).length) }"
+        @dragenter.stop="activateDropTarget(area.code, widgetsIn(area.code).length, $event)"
+        @dragover.stop="activateDropTarget(area.code, widgetsIn(area.code).length, $event)"
+        @dragleave.stop="leaveDropTarget(area.code, widgetsIn(area.code).length, $event)"
+        @drop.stop="drop(area.code, widgetsIn(area.code).length, $event)"
       />
     </section>
-
-    <section
-      v-if="allowedAreas.includes('sidebar')"
-      class="widget-area"
-      :class="{
-        'is-drag-available': areaCanDrop('sidebar'),
-        'is-drop-area': activeTarget?.area === 'sidebar',
-        'is-reordering': reordering,
-      }"
-    >
-      <header>
-        <div><h3>Sidebar</h3><p>Боковая область страницы</p></div>
-        <el-button :icon="Plus" :disabled="!canUpdate || reordering" @click="add('sidebar')">Добавить виджет</el-button>
-      </header>
-      <div
-        v-if="!sidebar.length"
-        class="widget-empty-drop-target"
-        :class="{ 'is-available': canDropAt('sidebar', 0), 'is-active': isActiveTarget('sidebar', 0) }"
-        @dragenter.stop="activateDropTarget('sidebar', 0, $event)"
-        @dragover.stop="activateDropTarget('sidebar', 0, $event)"
-        @dragleave.stop="leaveDropTarget('sidebar', 0, $event)"
-        @drop.stop="drop('sidebar', 0, $event)"
-      ><el-empty description="В боковой области нет виджетов" :image-size="70" /></div>
-      <template v-for="(item, index) in sidebar" :key="item.id">
-        <div
-          class="widget-drop-target"
-          :class="{ 'is-available': canDropAt('sidebar', index), 'is-active': isActiveTarget('sidebar', index) }"
-          @dragenter.stop="activateDropTarget('sidebar', index, $event)"
-          @dragover.stop="activateDropTarget('sidebar', index, $event)"
-          @dragleave.stop="leaveDropTarget('sidebar', index, $event)"
-          @drop.stop="drop('sidebar', index, $event)"
-        />
-        <widget-card
-          :widget="item"
-          :definition="definition(item.code)"
-          :sources="template.widget_value_sources"
-          :disabled="!canUpdate || reordering"
-          :dragging="draggingID === item.id"
-          @dragstart="startDrag(item, $event)"
-          @dragend="finishDrag"
-          @edit="edit(item)"
-          @delete="remove(item)"
-        />
-      </template>
-      <div
-        v-if="sidebar.length"
-        class="widget-drop-target"
-        :class="{ 'is-available': canDropAt('sidebar', sidebar.length), 'is-active': isActiveTarget('sidebar', sidebar.length) }"
-        @dragenter.stop="activateDropTarget('sidebar', sidebar.length, $event)"
-        @dragover.stop="activateDropTarget('sidebar', sidebar.length, $event)"
-        @dragleave.stop="leaveDropTarget('sidebar', sidebar.length, $event)"
-        @drop.stop="drop('sidebar', sidebar.length, $event)"
-      />
-    </section>
+      </el-col>
+    </el-row>
 
     <widget-picker-dialog v-model="pickerOpen" :widgets="definitions" @select="selectWidget" />
     <widget-settings-dialog
@@ -354,7 +308,7 @@ function handleError(error: unknown, fallback: string): void {
 </template>
 
 <style scoped>
-.resource-widgets-editor { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 22px; }
+.widget-area-column { margin-bottom: 22px; }
 .widget-area { min-height: 240px; padding: 16px; border: 1px solid var(--el-border-color); border-radius: 8px; background: var(--el-fill-color-extra-light); transition: background-color .14s ease, border-color .14s ease, box-shadow .14s ease, opacity .14s ease; }
 .widget-area.is-drag-available { border-color: var(--el-color-primary-light-5); background: color-mix(in srgb, var(--el-color-primary) 3%, var(--el-fill-color-extra-light)); box-shadow: inset 0 0 0 1px var(--el-color-primary-light-7); }
 .widget-area.is-drop-area { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); box-shadow: inset 0 0 0 1px var(--el-color-primary); }
@@ -370,5 +324,5 @@ function handleError(error: unknown, fallback: string): void {
 .widget-empty-drop-target { min-height: 158px; border: 1px solid transparent; border-radius: 7px; transition: background-color .14s ease, border-color .14s ease, box-shadow .14s ease; }
 .widget-empty-drop-target.is-available { border-color: var(--el-color-primary-light-5); background: color-mix(in srgb, var(--el-color-primary) 4%, transparent); }
 .widget-empty-drop-target.is-active { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); box-shadow: inset 0 0 0 1px var(--el-color-primary); }
-@media (max-width: 900px) { .resource-widgets-editor { grid-template-columns: 1fr; } }
+
 </style>

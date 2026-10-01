@@ -276,7 +276,14 @@ export interface ResourceTypeMetadata {
   content_types: ResourceContentTypeOption[]
 }
 
-export type WidgetArea = 'body' | 'sidebar'
+export type WidgetArea = string
+
+export interface WidgetAreaDescriptor {
+  code: WidgetArea
+  label: string
+  admin_span: number
+  supports_resource_widgets: boolean
+}
 
 export interface ResourceTemplate {
   code: string
@@ -285,7 +292,7 @@ export interface ResourceTemplate {
   fields: FieldDefinition[]
 	editor_tabs: FieldEditorTab[]
   supports_resource_widgets: boolean
-  widget_areas: WidgetArea[]
+  widget_areas: WidgetAreaDescriptor[]
   widget_value_sources: WidgetValueSource[]
 }
 

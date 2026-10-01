@@ -21,7 +21,7 @@ const template: ResourceTemplate = {
 	fields: [],
 	editor_tabs: [],
   supports_resource_widgets: true,
-  widget_value_sources: [], widget_areas: ['body', 'sidebar'],
+  widget_value_sources: [], widget_areas: [{ code: 'body', label: 'Body', admin_span: 16, supports_resource_widgets: true }, { code: 'sidebar', label: 'Sidebar', admin_span: 8, supports_resource_widgets: true }],
 }
 const definition: WidgetDefinition = {
   code: 'core_content',
@@ -195,4 +195,39 @@ describe('ResourceWidgetsEditor drag and drop', () => {
     expect(wrapper.find('.widget-drag-handle').attributes('draggable')).toBe('false')
     expect(wrapper.find('.widget-area.is-drag-available').exists()).toBe(false)
   })
+})
+
+it('retains default until the last widget move succeeds and preserves declared empty areas', async () => {
+  const source = [{ ...widget(41, 'body', 0), area: 'default' }]
+  const wrapper = mountEditor(source)
+  await wrapper.setProps({ template: { ...template, widget_areas: [] }, modelValue: [] })
+  expect(wrapper.get('[data-area="default"]').text()).toContain('Страница сайта')
+  expect(wrapper.findAll('.widget-area')).toHaveLength(1)
+  const zones = ['main', 'aside', 'footer'].map((code) => ({ code, label: code, admin_span: 24, supports_resource_widgets: true }))
+  await wrapper.setProps({ template: { ...template, widget_areas: zones }, modelValue: source })
+  expect(wrapper.findAll('.widget-area').map((node) => node.attributes('data-area'))).toEqual(['main', 'aside', 'footer', 'default'])
+  let resolveRequest: ((value: { items: ResourceWidget[] }) => void) | undefined
+  requestMock.mockImplementationOnce(() => new Promise((resolve) => { resolveRequest = resolve }))
+  const transfer = dragTransfer()
+  await wrapper.get('.widget-drag-handle').trigger('dragstart', { dataTransfer: transfer })
+  await wrapper.get('[data-area="main"] .widget-empty-drop-target').trigger('drop', { dataTransfer: transfer })
+  const moved = wrapper.emitted('update:modelValue')!.at(-1)![0] as ResourceWidget[]
+  await wrapper.setProps({ modelValue: moved })
+  expect(wrapper.find('[data-area="default"]').exists()).toBe(true)
+  resolveRequest?.({ items: moved })
+  await flushPromises()
+  expect(wrapper.find('[data-area="default"]').exists()).toBe(false)
+  expect(wrapper.findAll('.widget-area')).toHaveLength(3)
+  wrapper.unmount()
+})
+
+it('shows recovered disabled bindings and restores them when their declared area returns', async () => {
+  const source = [{ ...widget(41, 'body', 0), area: 'removed', enabled: false }]
+  const wrapper = mountEditor(source)
+  expect(wrapper.find('[data-area="default"] .widget-card').exists()).toBe(true)
+  await wrapper.setProps({ template: { ...template, widget_areas: [...template.widget_areas, { code: 'removed', label: 'Returned', admin_span: 24, supports_resource_widgets: true }] } })
+  expect(wrapper.find('[data-area="default"]').exists()).toBe(false)
+  expect(wrapper.find('[data-area="removed"] .widget-card').exists()).toBe(true)
+  expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+  wrapper.unmount()
 })

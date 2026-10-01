@@ -75,3 +75,18 @@ mountAdmin({
 configuration editors and icons. An unknown replacement target or accidental
 duplicate is an error. Route names and paths remain stable. Custom histories
 can be supplied with `history` (for example `createMemoryHistory()` in tests).
+
+## Widget areas
+
+The SDK exports `WidgetArea` (a dynamic string code), `WidgetAreaDescriptor`,
+`ResourceTemplate` and `ResourceWidget`. Template `widget_areas` is an ordered
+array of `{ code, label, admin_span, supports_resource_widgets }` descriptors.
+The editor uses Element Plus 24-column layout, with full-width columns below
+992px. Area widths do not change individual widget presentation columns.
+
+Bindings retain persisted `area` codes. An absent/non-editable code is displayed
+in the system `default` container (`Страница сайта`); returning the declared
+editable area restores the binding unless it was explicitly moved. Full reorder
+requests must retain original codes for untouched bindings. Empty default is
+visible only when the template has no declared containers. Otherwise it appears
+last while it contains bindings, including disabled ones.

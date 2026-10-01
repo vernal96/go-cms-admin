@@ -64,7 +64,7 @@ describe('ResourceEditView schema transitions', () => {
             icon: 'document',
 				editor_tabs: [{ code: 'content', label: 'Контент', fields: ['page_title'] }],
 				supports_resource_widgets: true,
-					widget_areas: ['body', 'sidebar'],
+					widget_areas: [{ code: 'body', label: 'Body', admin_span: 16, supports_resource_widgets: true }, { code: 'sidebar', label: 'Sidebar', admin_span: 8, supports_resource_widgets: true }],
             fields: [
               {
                 key: 'page_title',

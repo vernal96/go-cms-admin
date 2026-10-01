@@ -13,3 +13,5 @@ export { useFieldValidation } from './components/fields/use-field-validation'
 export { adminRequest, adminBlob, AdminAPIError } from './api/admin-api'
 export { useSelectedSite } from './composables/use-selected-site'
 export type { SiteOption, SiteDetailsResponse, SiteProfile } from './types/admin'
+
+export type { WidgetArea, WidgetAreaDescriptor, ResourceTemplate, ResourceWidget } from './types/admin'

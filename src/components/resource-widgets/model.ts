@@ -1,4 +1,4 @@
-import type { ResourceWidget, WidgetArea, WidgetParamBinding } from '../../types/admin'
+import type { ResourceWidget, WidgetArea, WidgetAreaDescriptor, WidgetParamBinding } from '../../types/admin'
 
 export interface WidgetSettingsValue {
   view: string
@@ -10,23 +10,41 @@ export interface WidgetSettingsValue {
   param_bindings: Record<string, WidgetParamBinding>
 }
 
-const areas: WidgetArea[] = ['body', 'sidebar']
+export const defaultArea: WidgetAreaDescriptor = {
+  code: 'default', label: 'Страница сайта', admin_span: 24, supports_resource_widgets: true,
+}
+
+export function effectiveArea(area: WidgetArea, areas: WidgetAreaDescriptor[]): WidgetArea {
+  return areas.some((item) => item.code === area && item.supports_resource_widgets) ? area : 'default'
+}
+
+export function visibleAreas(areas: WidgetAreaDescriptor[], widgets: ResourceWidget[]): WidgetAreaDescriptor[] {
+  if (!areas.length) return [defaultArea]
+  if (areas.some((area) => area.code === 'default')) return areas
+  return widgets.some((item) => effectiveArea(item.area, areas) === 'default') ? [...areas, defaultArea] : areas
+}
 
 export function sortWidgets(source: ResourceWidget[]): ResourceWidget[] {
   return [...source].sort((left, right) => {
-    const areaDifference = areas.indexOf(left.area) - areas.indexOf(right.area)
+    const areaDifference = left.area === right.area ? 0
+      : left.area === 'default' ? -1 : right.area === 'default' ? 1
+        : left.area < right.area ? -1 : 1
     return areaDifference || left.position - right.position || left.id - right.id
   })
 }
 
 export function normalizeWidgetPositions(source: ResourceWidget[]): ResourceWidget[] {
-  const positions: Record<WidgetArea, number> = { body: 0, sidebar: 0 }
-  return sortWidgets(source).map((widget) => ({
-    ...widget,
-    params: { ...widget.params },
-    param_bindings: { ...widget.param_bindings },
-    position: positions[widget.area]++,
-  }))
+  const positions = new Map<WidgetArea, number>()
+  return sortWidgets(source).map((widget) => {
+    const position = positions.get(widget.area) ?? 0
+    positions.set(widget.area, position + 1)
+    return {
+      ...widget,
+      params: { ...widget.params },
+      param_bindings: { ...widget.param_bindings },
+      position,
+    }
+  })
 }
 
 export function moveWidget(
@@ -49,10 +67,9 @@ export function moveWidget(
     area,
   })
   const positionedTarget = target.map((widget, position) => ({ ...widget, position }))
-  const otherArea = area === 'body' ? 'sidebar' : 'body'
   return normalizeWidgetPositions([
     ...positionedTarget,
-    ...remaining.filter((widget) => widget.area === otherArea),
+    ...remaining.filter((widget) => widget.area !== area),
   ])
 }
 
