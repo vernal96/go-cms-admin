@@ -13,6 +13,28 @@ const available: ValidatorMetadata[] = [
 ]
 
 describe('validator editor', () => {
+ it('forgets removed option editors when replaced with a validator without options', async () => {
+  const wrapper = mount(ValidatorEditor, { props: {
+   modelValue: [{ type: 'min', options: {} }], fieldType: 'int',
+   available: [...available, { code: 'example.no-options', label: 'Без настроек', options: [], field_types: ['int'] }],
+   'onUpdate:modelValue': (value: ValidatorDefinition[]) => wrapper.setProps({ modelValue: value }),
+  } })
+  const validate = () => (wrapper.vm as unknown as { validate(): void }).validate()
+  expect(validate).toThrow('Проверьте настройки')
+  await wrapper.findAll('button').find(item => item.text() === 'Удалить')!.trigger('click')
+  wrapper.getComponent(ElSelect).vm.$emit('update:modelValue', 'example.no-options')
+  await wrapper.vm.$nextTick()
+  await wrapper.findAll('button').find(item => item.text() === 'Добавить')!.trigger('click')
+  expect(validate).not.toThrow()
+  // Replacing/removing other entries must still validate the editors that remain.
+  await wrapper.setProps({ modelValue: [{ type: 'min', options: {} }, { type: 'max', options: { value: 10 } }] })
+  await wrapper.findAll('button').find(item => item.text() === 'Ниже' && item.attributes('disabled') === undefined)!.trigger('click')
+  expect(validate).toThrow('Проверьте настройки')
+  await wrapper.findAllComponents(ConfigurationEditor)[1]!.vm.$emit('update:modelValue', { value: 1 })
+  await wrapper.vm.$nextTick()
+  expect(validate).not.toThrow()
+  wrapper.unmount()
+ })
  it('renders backend metadata and preserves add, configure, order and remove operations', async () => {
   const wrapper = mount(ValidatorEditor, { props: { modelValue: [{ type: 'min', options: { value: 1 } }], available, fieldType: 'int', 'onUpdate:modelValue': (value: ValidatorDefinition[]) => wrapper.setProps({ modelValue: value }) } })
   expect(wrapper.text()).toContain('Минимум')

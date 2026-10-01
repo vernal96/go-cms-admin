@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../fields/ServerValidationErrors.vue'
+import { useServerValidation } from '../fields/server-validation'
 import { useFieldValidation } from '../fields/use-field-validation'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { ElAlert, ElButton, ElDialog, ElForm } from 'element-plus'
 import { AdminAPIError, adminRequest } from '../../api/admin-api'
 import type { FieldDefinition } from '../../types/admin'
 import DynamicFieldsForm from '../fields/DynamicFieldsForm.vue'
-import { createFieldValues, fieldErrorMessage,  type DynamicFieldErrors, type DynamicValues } from '../fields/model'
+import { createFieldValues,  type DynamicFieldErrors, type DynamicValues } from '../fields/model'
 
 const { validateFieldValues } = useFieldValidation()
 
@@ -27,6 +29,7 @@ const state = ref<SettingsState>()
 const values = ref<DynamicValues>({})
 const errors = ref<DynamicFieldErrors>({})
 const error = ref('')
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const loading = ref(false)
 const saving = ref(false)
 const conflict = ref(false)
@@ -34,6 +37,7 @@ const url = computed(() => `/api/sites/${props.siteId}/media/${props.mediaId}/se
 let generation = 0
 onBeforeUnmount(() => { generation++ })
 async function load() {
+  clearValidation()
   const current = ++generation
   state.value = undefined
   error.value = ''
@@ -55,6 +59,8 @@ watch(() => [open.value, props.mediaId, props.siteId, props.settingsCode, props.
 }, { immediate: true })
 async function save() {
   if (!state.value || saving.value || conflict.value) return
+  clearValidation()
+  error.value = ''
   errors.value = validateFieldValues(state.value.fields, values.value)
   if (Object.keys(errors.value).length) return
   saving.value = true
@@ -68,9 +74,9 @@ async function save() {
   } catch (e) {
     if (current !== generation) return
     if (e instanceof AdminAPIError) {
-      for (const item of e.fieldErrors) errors.value[item.key] = fieldErrorMessage(item.code, item.params)
       conflict.value = e.status === 409
     }
+    if (captureValidation(e)) return
     error.value = conflict.value ? 'Изображение изменилось. Скопируйте введённые значения при необходимости и загрузите актуальные настройки.' : e instanceof Error ? e.message : 'Не удалось сохранить настройки.'
   } finally { saving.value = false }
 }
@@ -79,6 +85,7 @@ function close() { if (!saving.value) open.value = false }
 
 <template>
   <el-dialog :model-value="open" title="Настройки изображения" width="560px" :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving" @update:model-value="close">
+    <server-validation-errors :errors="serverFieldErrors" :fields="state?.fields ?? []" />
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
     <p v-if="loading">Загрузка настроек…</p>
     <el-form v-if="state" label-position="top" :disabled="saving" @submit.prevent="save">

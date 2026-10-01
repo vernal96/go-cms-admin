@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../../components/fields/ServerValidationErrors.vue'
+import { useServerValidation } from '../../components/fields/server-validation'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { Plus, MoreFilled } from '@element-plus/icons-vue'
@@ -36,6 +38,11 @@ const editorKey = ref(0)
 const editorDirty = ref(false)
 const busy = ref(false)
 const error = ref('')
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
+const validationFields = computed(() => [
+  { key: 'code', label: 'Код' }, { key: 'label', label: 'Подпись' },
+  { key: 'config', label: 'Настройки', options: { fields: props.detail.available_element_types.find(item => item.code === (element.value?.type ?? type.value))?.fields ?? [] } },
+])
 const unsynced = ref(false)
 const leaveOpen = ref(false)
 let leaveResolve: ((answer: boolean) => void) | undefined
@@ -66,6 +73,7 @@ function mandatory(node: LayoutNode): boolean {
   return props.detail.fields.some(item => item.id === node.field_id && ['privacy_consent', 'captcha'].includes(item.code)) || props.detail.elements.some(item => item.id === node.element_id && item.type === 'submit_button')
 }
 function showNode(id: number | null): void {
+  clearValidation()
   const node = nodes.value.find(item => item.id === id)
   selectedID.value = node?.id ?? null; creating.value = false; kind.value = node?.kind ?? ''; type.value = ''
   field.value = clone(props.detail.fields.find(item => item.id === node?.field_id) ?? null)
@@ -76,7 +84,7 @@ function showNode(id: number | null): void {
 }
 function report(caught: unknown): void {
   if (caught instanceof AdminAPIError && caught.status === 401) emit('unauthorized')
-  error.value = caught instanceof Error ? caught.message : 'Не удалось сохранить изменения.'
+  if (!captureValidation(caught)) error.value = caught instanceof Error ? caught.message : 'Не удалось сохранить изменения.'
 }
 async function refresh(): Promise<void> {
   const value = await getFormEditor(props.accessToken, props.detail.form.site_id, props.detail.form.id)
@@ -95,11 +103,11 @@ async function addNode(parent: number | null): Promise<void> {
   showNode(null); parentID.value = parent; creating.value = true
   if (parent !== null && !expanded.value.includes(parent)) expanded.value.push(parent)
 }
-function changeKind(): void { type.value = ''; editorKey.value++; editorDirty.value = false }
-function changeType(): void { editorKey.value++; editorDirty.value = false }
+function changeKind(): void { clearValidation(); type.value = ''; editorKey.value++; editorDirty.value = false }
+function changeType(): void { clearValidation(); editorKey.value++; editorDirty.value = false }
 async function save(): Promise<boolean> {
   if (!canUpdate.value || busy.value || unsynced.value) return false
-  error.value = ''; busy.value = true
+  clearValidation(); error.value = ''; busy.value = true
   let savedID = selectedID.value
   let committed = false
   try {
@@ -155,7 +163,7 @@ function allowDrop(drag: TreeNode, target: TreeNode, position: AllowDropType): b
 }
 async function persistMove(draft: LayoutNode[]): Promise<void> {
   if (!canUpdate.value || busy.value || unsynced.value) return
-  const previous = nodes.value; nodes.value = draft; busy.value = true; error.value = ''
+  const previous = nodes.value; nodes.value = draft; clearValidation(); busy.value = true; error.value = ''
   try {
     const result = await replaceLayout(props.accessToken, props.detail.form.site_id, props.detail.form.id, draft)
     nodes.value = result.nodes
@@ -190,7 +198,7 @@ async function moveToParent(): Promise<void> {
 async function remove(node: LayoutNode): Promise<void> {
   if (mandatory(node) || !await ensureLeave()) return
   try { await ElMessageBox.confirm(node.kind === 'container' ? 'Удалить контейнер? Его содержимое займёт его место, порядок сохранится.' : `Удалить «${nodeLabel(node)}»?`, 'Удаление узла', { type: 'warning', confirmButtonText: 'Удалить', cancelButtonText: 'Отмена' }) } catch { return }
-  busy.value = true; error.value = ''
+  clearValidation(); busy.value = true; error.value = ''
   let committed = false
   try {
     const { site_id: site, id: form } = props.detail.form
@@ -211,6 +219,7 @@ defineExpose({ ensureLeave })
 
 <template>
   <div class="structure-editor">
+    <server-validation-errors :errors="serverFieldErrors" :fields="validationFields" />
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon />
     <el-button v-if="unsynced" :loading="busy" @click="retryRefresh">Обновить структуру</el-button>
     <div class="structure-columns">
@@ -259,6 +268,7 @@ defineExpose({ ensureLeave })
     </div>
     <el-dialog v-model="leaveOpen" title="Несохранённые изменения" class="forms-mail-dialog" width="min(520px, 94vw)" :close-on-click-modal="false" :close-on-press-escape="!busy" :show-close="!busy" @closed="finishLeave(false)">
       <p>Сохранить настройки узла перед переходом?</p>
+      <server-validation-errors :errors="serverFieldErrors" :fields="validationFields" />
       <el-alert v-if="error" :title="error" type="error" :closable="false" />
       <template #footer><el-button :disabled="busy" @click="finishLeave(false)">Остаться</el-button><el-button :disabled="busy" @click="leaveDiscard">Отбросить</el-button><el-button type="primary" :loading="busy" @click="leaveSave">Сохранить</el-button></template>
     </el-dialog>

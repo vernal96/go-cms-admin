@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../../components/fields/ServerValidationErrors.vue'
+import { useServerValidation } from '../../components/fields/server-validation'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElAlert, ElButton, ElCard, ElCheckbox, ElForm, ElFormItem, ElInput, ElMessage, ElOption, ElSelect, ElSwitch, ElTag } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
@@ -20,6 +22,7 @@ const router = useRouter()
 const selected = useSelectedSite()
 const loading = ref(false)
 const saving = ref(false)
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const error = ref<string | null>(null)
 const replyToEnabled = ref(false)
 const siteVariables = ref<MailSiteVariable[]>([])
@@ -67,6 +70,7 @@ function cloneField(value: FieldDefinition): FieldDefinition {
 }
 
 async function load(): Promise<void> {
+  clearValidation()
   error.value = null
   siteVariables.value = []
   selectedPlaceholder.value = ''
@@ -136,6 +140,8 @@ function clearAddressErrors(): void {
 async function save(): Promise<void> {
   const siteID = selected.selectedSite.value?.id
   if (!siteID || !canSave.value || saving.value) return
+  clearValidation()
+  error.value = null
   const validation = validate()
   if (validation) { error.value = validation; return }
   saving.value = true
@@ -171,7 +177,7 @@ function insertPlaceholder(target: 'subject' | 'body'): void {
 
 function handleError(caught: unknown): void {
   if (caught && typeof caught === 'object' && 'status' in caught && caught.status === 401) { emit('unauthorized'); return }
-  error.value = caught instanceof Error ? caught.message : 'Операция с шаблоном не выполнена.'
+  if (!captureValidation(caught)) error.value = caught instanceof Error ? caught.message : 'Операция с шаблоном не выполнена.'
 }
 
 watch(() => [selected.selectedSite.value?.id, route.params.templateId], () => void load())
@@ -189,6 +195,7 @@ onMounted(() => void load())
       </div>
     </header>
     <el-alert v-if="!selected.selectedSite.value" type="warning" :closable="false" title="Выберите сайт в боковой панели." />
+    <server-validation-errors :errors="serverFieldErrors" :fields="form.variables" />
     <el-alert v-if="error" type="error" :closable="false" :title="error" />
 
     <el-form v-if="selected.selectedSite.value" label-position="top">

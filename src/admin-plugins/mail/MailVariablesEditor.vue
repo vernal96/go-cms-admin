@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUpdate, ref } from 'vue'
 import { Delete, Plus } from '@element-plus/icons-vue'
 import { ElButton, ElCheckbox, ElInput, ElOption, ElSelect } from 'element-plus'
 import ValidatorEditor from '../../components/fields/ValidatorEditor.vue'
@@ -8,6 +8,7 @@ import type { FieldChoice, FieldDefinition, FieldOptions, ValidatorDefinition, V
 const props = defineProps<{ modelValue: FieldDefinition[]; availableValidators?: ValidatorMetadata[]; siteId?: number; accessToken?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: FieldDefinition[]] }>()
 const validatorEditors = ref<{ validate(): void }[]>([])
+onBeforeUpdate(() => { validatorEditors.value = [] })
 
 const types = [
   ['string', 'Строка'], ['email', 'Email'], ['textarea', 'Многострочный текст'],

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../../components/fields/ServerValidationErrors.vue'
+import { useServerValidation } from '../../components/fields/server-validation'
 import { useFieldValidation } from '../../components/fields/use-field-validation'
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElAlert, ElButton, ElCard, ElDescriptions, ElDescriptionsItem, ElForm, ElFormItem, ElMessage, ElOption, ElSelect, ElTag } from 'element-plus'
@@ -22,6 +24,7 @@ const templates = ref<MailTemplate[]>([])
 const templateID = ref<number | null>(null)
 const values = ref<DynamicValues>({})
 const fieldErrors = ref<DynamicFieldErrors>({})
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const preview = ref<RenderedMailMessage | null>(null)
 const loading = ref(false)
 const previewing = ref(false)
@@ -41,6 +44,7 @@ async function load(): Promise<void> {
 }
 
 function choose(id: number | null): void {
+  clearValidation()
   templateID.value = id
   const selectedTemplate = templates.value.find((item) => item.id === id)
   values.value = createFieldValues(selectedTemplate?.variables ?? [])
@@ -51,6 +55,8 @@ function choose(id: number | null): void {
 }
 
 function validate(): boolean {
+  clearValidation()
+  error.value = null
   if (!template.value) { error.value = 'Выберите шаблон.'; return false }
   fieldErrors.value = validateFieldValues(template.value.variables, values.value)
   return Object.keys(fieldErrors.value).length === 0
@@ -81,7 +87,7 @@ async function send(): Promise<void> {
 function addresses(items: MailAddress[]): string { return items.map((item) => item.name ? `${item.name} <${item.email}>` : item.email).join(', ') || '—' }
 function handleError(caught: unknown): void {
   if (caught instanceof AdminAPIError && caught.status === 401) { emit('unauthorized'); return }
-  error.value = caught instanceof Error ? caught.message : 'Операция с письмом не выполнена.'
+  if (!captureValidation(caught)) error.value = caught instanceof Error ? caught.message : 'Операция с письмом не выполнена.'
 }
 
 watch(() => selected.selectedSite.value?.id, () => void load())
@@ -93,6 +99,7 @@ onMounted(() => void load())
   <section v-else class="workspace-page forms-mail-page mail-send-page" v-loading="loading">
     <header class="page-header"><div><h1>Отправить письмо</h1><p>Предпросмотр обязателен; доставка после постановки в очередь выполняется асинхронно</p></div></header>
     <el-alert v-if="!selected.selectedSite.value" type="warning" :closable="false" title="Выберите сайт в боковой панели." />
+    <server-validation-errors :errors="serverFieldErrors" :fields="template?.variables ?? []" />
     <el-alert v-if="error" type="error" :closable="false" :title="error" show-icon />
     <el-alert v-if="queuedID" type="success" :closable="false" :title="`Письмо #${queuedID} поставлено в очередь.`" show-icon>
       <el-button text type="primary" @click="router.push({ name: 'mail.history.detail', params: { messageId: queuedID } })">Открыть историю доставки</el-button>

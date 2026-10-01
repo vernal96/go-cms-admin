@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import SiteForm from '../components/SiteForm.vue'
+import { useServerValidation } from '../components/fields/server-validation'
 import { useSelectedSite } from '../composables/use-selected-site'
 import type { SiteDetailsResponse, SiteFormPayload } from '../types/admin'
 
@@ -17,12 +18,12 @@ const router = useRouter()
 const selected = useSelectedSite()
 const submitting = ref(false)
 const error = ref<string | null>(null)
-const fieldErrors = ref<AdminAPIError['fieldErrors']>([])
+const { errors: fieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 
 async function submit(payload: SiteFormPayload): Promise<void> {
   submitting.value = true
   error.value = null
-  fieldErrors.value = []
+  clearValidation()
   try {
     const response = await adminRequest<SiteDetailsResponse>(
       '/api/sites',
@@ -39,8 +40,7 @@ async function submit(payload: SiteFormPayload): Promise<void> {
     if (caught instanceof AdminAPIError && caught.status === 401)
       emit('unauthorized')
     else {
-      if (caught instanceof AdminAPIError)
-        fieldErrors.value = caught.fieldErrors
+      if (captureValidation(caught)) return
       error.value =
         caught instanceof Error ? caught.message : 'Не удалось создать сайт.'
     }
@@ -63,6 +63,7 @@ async function submit(payload: SiteFormPayload): Promise<void> {
       :submitting="submitting"
       :error="error"
       :field-errors="fieldErrors"
+      @clear-validation="clearValidation(); error = null"
       @submit="submit"
       @cancel="router.push('/admin/sites')"
       @unauthorized="emit('unauthorized')"

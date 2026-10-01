@@ -136,7 +136,7 @@ describe('ResourceExtensionEditor', () => {
     expect(wrapper.findComponent({ name: 'ElSwitch' }).props('disabled')).toBe(true)
   })
 
-  it('shows backend template validation on the matching field', async () => {
+  it('shows backend template validation in the common summary without highlighting', async () => {
     requestMock.mockReset()
     requestMock
       .mockResolvedValueOnce(settings)
@@ -153,9 +153,10 @@ describe('ResourceExtensionEditor', () => {
     await flushPromises()
     const titleField = wrapper.findAllComponents({ name: 'ElFormItem' })
       .find((field) => field.props('label') === 'Title')
-    expect(titleField?.props('error')).toBe('unknown variable')
-    expect(wrapper.findComponent({ name: 'ElAlert' }).props('title')).toBe(
-      'SEO template validation failed',
-    )
+    expect(titleField?.props('error')).toBeUndefined()
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toEqual([
+      { key: 'title_template', code: 'extension', params: { message: 'unknown variable' } },
+    ])
+    expect(wrapper.findComponent({ name: 'ElAlert' }).exists()).toBe(false)
   })
 })

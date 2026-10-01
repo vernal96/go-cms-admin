@@ -4,7 +4,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils'
 import { ElMessageBox } from 'element-plus'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { adminRequest } from '../api/admin-api'
+import { AdminAPIError, adminRequest } from '../api/admin-api'
 import ResourceEditView from './ResourceEditView.vue'
 
 vi.mock('../api/admin-api', async (importOriginal) => ({
@@ -109,6 +109,29 @@ describe('ResourceEditView schema transitions', () => {
       .mockResolvedValueOnce({ items: [] })
       .mockResolvedValueOnce({ site: { id: 7, domain: 'example.com' }, permissions: { read: true, create: true, update: true, delete: true } })
     vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never)
+  })
+
+  it('shows server validation in the summary, preserves the draft and clears on retry', async () => {
+    const wrapper = shallowMount(ResourceEditView, {
+      props: { accessToken: 'token', permissions: new Set<string>() },
+      global: { renderStubDefaultSlot: true },
+    })
+    await flushPromises()
+    const errors = [{ key: 'page_title', code: 'regex' }]
+    requestMock.mockRejectedValueOnce(new AdminAPIError(422, 'validation_failed', 'request data is invalid', errors))
+    const form = wrapper.getComponent({ name: 'ElForm' })
+    wrapper.findAllComponents({ name: 'ElButton' }).find(item => item.text() === 'Сохранить')!.vm.$emit('click')
+    await flushPromises()
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toEqual(errors)
+    expect(wrapper.getComponent({ name: 'TabbedDynamicFieldsForm' }).props('errors')).toEqual({})
+    expect(form.props('model').fields).toEqual({ page_title: 'Old title' })
+    // A retry blocked by local validation must also discard the previous server errors.
+    form.props('model').fields.page_title = ''
+    wrapper.findAllComponents({ name: 'ElButton' }).find(item => item.text() === 'Сохранить')!.vm.$emit('click')
+    await flushPromises()
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toBeNull()
+    expect(wrapper.getComponent({ name: 'TabbedDynamicFieldsForm' }).props('errors')).toHaveProperty('page_title')
+    wrapper.unmount()
   })
 
   it('clears incompatible settings only after confirmed template and type changes', async () => {

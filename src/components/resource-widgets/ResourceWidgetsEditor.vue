@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useServerValidation } from '../fields/server-validation'
 import { ElButton, ElEmpty, ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { AdminAPIError, adminRequest, adminRequestVoid } from '../../api/admin-api'
@@ -33,12 +34,15 @@ const emit = defineEmits<{
 const pickerOpen = ref(false)
 const settingsOpen = ref(false)
 const saving = ref(false)
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const pendingArea = ref<WidgetArea>('body')
 const selectedDefinition = ref<WidgetDefinition | null>(null)
 const editingWidget = ref<ResourceWidget | null>(null)
 const draggingID = ref<number | null>(null)
 const activeTarget = ref<{ area: WidgetArea; index: number } | null>(null)
 const reordering = ref(false)
+
+watch(() => [props.siteId, props.resourceId, settingsOpen.value, selectedDefinition.value, editingWidget.value], clearValidation)
 
 const widgetDragType = 'application/x-go-cms-widget'
 
@@ -80,6 +84,7 @@ function edit(value: ResourceWidget): void {
 
 async function save(value: WidgetSettingsValue): Promise<void> {
   if (!selectedDefinition.value) return
+  clearValidation()
   saving.value = true
   try {
     const path = `/api/sites/${props.siteId}/resources/${props.resourceId}/widgets`
@@ -102,7 +107,7 @@ async function save(value: WidgetSettingsValue): Promise<void> {
     settingsOpen.value = false
     ElMessage.success(editingWidget.value ? 'Виджет обновлён' : 'Виджет добавлен')
   } catch (error) {
-    handleError(error, 'Не удалось сохранить виджет.')
+    if (!captureValidation(error)) handleError(error, 'Не удалось сохранить виджет.')
   } finally {
     saving.value = false
   }
@@ -341,6 +346,8 @@ function handleError(error: unknown, fallback: string): void {
 			:site-id="siteId"
 			:access-token="accessToken"
       :saving="saving"
+      :server-errors="serverFieldErrors"
+      @clear-validation="clearValidation"
       @save="save"
     />
   </div>

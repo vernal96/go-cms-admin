@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../fields/ServerValidationErrors.vue'
+import type { FieldValidationError } from '../../types/auth'
 import { useFieldValidation } from '../fields/use-field-validation'
 import { computed, reactive, ref, watch } from 'vue'
 import {
@@ -31,10 +33,12 @@ const props = defineProps<{
 		siteId: number
 		accessToken: string
   saving?: boolean
+  serverErrors?: FieldValidationError[] | null
 }>()
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   save: [value: WidgetSettingsValue]
+  clearValidation: []
 }>()
 
 const form = reactive<WidgetSettingsValue>({
@@ -77,6 +81,7 @@ function fieldsForTab(codes: string[]) {
 }
 
 function save(): void {
+  emit('clearValidation')
   if (!props.definition || unsupported.value.length) return
   errors.value = validateFieldValues(literalFields.value, form.params)
   for (const [key, binding] of Object.entries(form.param_bindings)) {
@@ -103,6 +108,7 @@ function save(): void {
     width="min(840px, calc(100vw - 32px))"
     @update:model-value="emit('update:modelValue', $event)"
   >
+    <server-validation-errors :errors="serverErrors" :fields="definition?.fields ?? []" />
     <el-alert v-if="unsupported.length" type="error" :closable="false" :title="`Неизвестные типы полей: ${unsupported.join(', ')}`" />
     <el-form v-if="definition" label-position="top">
       <div class="widget-presentation-grid">

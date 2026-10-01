@@ -1,20 +1,23 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../../components/fields/ServerValidationErrors.vue'
+import type { FieldValidationError } from '../../types/auth'
 import { computed, reactive, ref, watch } from 'vue'
 import { ElAlert, ElButton, ElDialog, ElForm, ElFormItem, ElInput, ElInputNumber, ElOption, ElSelect, ElSwitch } from 'element-plus'
 import ConfigurationEditor from '../../components/fields/ConfigurationEditor.vue'
 import type { ActionTypeMetadata, FormAction, FormField, FormStatus, FormTrigger } from './types'
 const props = defineProps<{
  modelValue:boolean; action?:FormAction|null; actionTypes:ActionTypeMetadata[]; fields:FormField[]; statuses:FormStatus[];
+ serverErrors?: FieldValidationError[] | null;
  accessToken:string; siteID:number; permissions:ReadonlySet<string>; nextPosition:number
 }>()
-const emit = defineEmits<{ 'update:modelValue':[value:boolean]; save:[payload:Pick<FormAction,'code'|'name'|'enabled'|'trigger'|'action_type'|'config'|'position'>] }>()
+const emit = defineEmits<{ clearValidation: []; 'update:modelValue':[value:boolean]; save:[payload:Pick<FormAction,'code'|'name'|'enabled'|'trigger'|'action_type'|'config'|'position'>] }>()
 const state = reactive({code:'',name:'',enabled:true,trigger_type:'submitted' as 'submitted'|'status_changed',from:'',to:'',action_type:'',position:0})
 const values = ref<Record<string,unknown>>({})
 const error = ref('')
 const editor = ref<{ validate(): void }>()
 const selectedType = computed(() => props.actionTypes.find(item => item.code === state.action_type))
 const editorContext = computed(() => ({fields:props.fields,permissions:props.permissions,trigger:state.trigger_type}))
-watch(() => state.action_type, () => { values.value = {}; error.value = '' }, {flush:'sync'})
+watch(() => state.action_type, () => { emit('clearValidation'); values.value = {}; error.value = '' }, {flush:'sync'})
 function reset():void {
  const item = props.action
  Object.assign(state,{code:item?.code ?? '',name:item?.name ?? '',enabled:item?.enabled ?? true,trigger_type:item?.trigger.type ?? 'submitted',from:item?.trigger.from_status ?? '',to:item?.trigger.to_status ?? '',action_type:item?.action_type ?? props.actionTypes.find(type => type.available)?.code ?? '',position:item?.position ?? props.nextPosition})
@@ -23,6 +26,8 @@ function reset():void {
 }
 watch(() => [props.modelValue,props.action] as const,([open]) => {if(open) reset()}, {deep:true,immediate:true})
 function save():void {
+ emit('clearValidation')
+ error.value = ''
  try {
   if (!selectedType.value?.available) throw new Error('Выберите доступный тип действия.')
   editor.value?.validate()
@@ -35,6 +40,7 @@ function save():void {
 
 <template>
   <el-dialog class="forms-mail-dialog" :model-value="modelValue" :title="action ? 'Действие' : 'Новое действие'" width="min(780px, 96vw)" @update:model-value="emit('update:modelValue', $event)">
+    <server-validation-errors :errors="serverErrors" :fields="[{ key: 'name', label: 'Название' }, { key: 'code', label: 'Код' }, { key: 'config', label: 'Настройки', options: { fields: selectedType?.fields ?? [] } }]" />
     <el-form label-position="top" class="action-editor" @submit.prevent="save">
       <el-form-item label="Название" required><el-input v-model="state.name" /></el-form-item>
       <el-form-item label="Код" required><el-input v-model="state.code" /></el-form-item>

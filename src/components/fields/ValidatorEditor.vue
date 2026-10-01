@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUpdate, ref } from 'vue'
 import { ElAlert, ElButton, ElOption, ElSelect } from 'element-plus'
 import ConfigurationEditor from './ConfigurationEditor.vue'
 import type { ValidatorDefinition, ValidatorMetadata } from '../../types/admin'
@@ -7,6 +7,7 @@ import type { ValidatorDefinition, ValidatorMetadata } from '../../types/admin'
 const props = defineProps<{ available: ValidatorMetadata[]; fieldType: string; multiple?: boolean; siteId?: number; accessToken?: string }>()
 const model = defineModel<ValidatorDefinition[]>({ required: true })
 const editors = ref<{ validate(): void }[]>([])
+onBeforeUpdate(() => { editors.value = [] })
 const selected = ref('')
 const labels = computed(() => new Map(props.available.map(item => [item.code, item.label])))
 function compatible(item: ValidatorMetadata): boolean {

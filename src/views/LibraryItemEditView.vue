@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../components/fields/ServerValidationErrors.vue'
+import { useServerValidation } from '../components/fields/server-validation'
 import { useFieldValidation } from '../components/fields/use-field-validation'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElAlert, ElButton, ElDatePicker, ElForm, ElFormItem, ElInput, ElMessage, ElOption, ElSelect, ElSkeleton, ElSwitch, ElTabPane, ElTabs } from 'element-plus'
@@ -28,6 +30,7 @@ const loading = ref(true)
 const submitting = ref(false)
 const moving = ref(false)
 const errorMessage = ref('')
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const moveError = ref('')
 const metadata = ref<ResourceMetadata>({ types: [], templates: [], widgets: [], extensions: [] })
 const libraries = ref<Array<{ id: number; display_title: string }>>([])
@@ -60,6 +63,7 @@ watch(visibleTabNames, (names) => {
 }, { immediate: true })
 
 async function load(): Promise<void> {
+  clearValidation()
   loading.value = true
   try {
     const [loadedMetadata, options, libraryDetails] = await Promise.all([
@@ -96,9 +100,10 @@ async function load(): Promise<void> {
   finally { loading.value = false }
 }
 
-function changeTemplate(value: string | null): void { form.template_code = value; form.fields = createFieldValues(selectedTemplate.value?.fields ?? []); fieldErrors.value = {} }
+function changeTemplate(value: string | null): void { clearValidation(); form.template_code = value; form.fields = createFieldValues(selectedTemplate.value?.fields ?? []); fieldErrors.value = {} }
 function generateCode(): void { form.slug = generateResourceCode(form.title) }
 async function submit(): Promise<void> {
+  clearValidation()
   errorMessage.value = ''; fieldErrors.value = {}
   if (!form.title.trim()) { errorMessage.value = 'Заполните название.'; return }
   const fields = selectedTemplate.value?.fields ?? []
@@ -115,7 +120,7 @@ async function submit(): Promise<void> {
       resourceVersion.value = updated.item.version
       ElMessage.success('Ресурс сохранён')
     }
-  } catch (error) { errorMessage.value = error instanceof AdminAPIError ? error.message : 'Не удалось сохранить ресурс.' }
+  } catch (error) { if (!captureValidation(error)) errorMessage.value = error instanceof AdminAPIError ? error.message : 'Не удалось сохранить ресурс.' }
   finally { submitting.value = false }
 }
 
@@ -141,11 +146,13 @@ async function move(): Promise<void> {
 }
 
 onMounted(() => void load())
+watch(() => [route.params.siteId, route.params.resourceId, route.params.itemId], () => void load())
 </script>
 
 <template>
   <section class="workspace-page">
     <header class="page-header"><div><h1>{{ creating ? 'Новый ресурс библиотеки' : (form.title || 'Ресурс библиотеки') }}</h1><p>Ресурс не входит в дерево сайта</p></div><div class="page-header-actions"><el-button v-if="!creating" :loading="moving" :disabled="loading || !canUpdate || form.library_id === ownerLibraryId" @click="move">Переместить</el-button><el-button type="primary" :loading="submitting" :disabled="loading || !canUpdate" @click="submit">Сохранить</el-button></div></header>
+    <server-validation-errors :errors="serverFieldErrors" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? [])]" />
     <el-alert v-if="errorMessage" type="error" :closable="false" :title="errorMessage" />
     <el-alert v-if="moveError" type="error" :closable="false" :title="moveError" />
     <el-skeleton v-if="loading" :rows="10" animated />

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AdminAPIError } from '../../api/admin-api'
 import { ElButton, ElInput, ElSelect, ElTree } from 'element-plus'
 import FormStructureEditor from './FormStructureEditor.vue'
 import FormFieldEditor from './FormFieldEditor.vue'
@@ -37,6 +38,22 @@ async function choose(wrapper: ReturnType<typeof setup>['wrapper'], id: number) 
 }
 
 describe('Forms structure panel', () => {
+  it('keeps a rejected field draft and shows a generic summary when Forms omits details', async () => {
+    const { wrapper } = setup()
+    await choose(wrapper, 10)
+    const input = wrapper.getComponent(FormFieldEditor).findAllComponents(ElInput)[1]!.get('input')
+    await input.setValue('Черновик')
+    vi.mocked(api.updateField).mockRejectedValueOnce(new AdminAPIError(422, 'validation_failed', 'Forms validation failed'))
+    await button(wrapper, 'Сохранить').trigger('click'); await flushPromises()
+    expect(wrapper.text()).toContain('Исправьте данные и повторите попытку.')
+    expect(input.element.value).toBe('Черновик')
+    expect(wrapper.text()).not.toContain('Forms validation failed')
+    expect(wrapper.find('.el-form-item.is-error').exists()).toBe(false)
+    vi.mocked(api.updateField).mockResolvedValueOnce(undefined as never)
+    await button(wrapper, 'Сохранить').trigger('click'); await flushPromises()
+    expect(wrapper.find('.server-validation-errors').exists()).toBe(false)
+  })
+
   it('creates a field in the selected container only after category, type and settings', async () => {
     const { wrapper, detail } = setup()
     await wrapper.get('button[aria-label="Добавить потомка: Контакты"]').trigger('click')

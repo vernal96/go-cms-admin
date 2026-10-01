@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../components/fields/ServerValidationErrors.vue'
+import { useServerValidation } from '../components/fields/server-validation'
 import { projectName } from '../project'
 import { useFieldValidation } from '../components/fields/use-field-validation'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
@@ -34,7 +36,6 @@ import LibraryItemsTab from '../components/LibraryItemsTab.vue'
 import ResourceHistoryTab from '../components/ResourceHistoryTab.vue'
 import {
   createFieldValues,
-  fieldErrorMessage,
   type DynamicFieldErrors,
 } from '../components/fields/model'
 import { generateResourceCode } from '../resource-code'
@@ -49,7 +50,7 @@ import type {
   ResourceTypeCode,
   SiteDetailsResponse,
 } from '../types/admin'
-import type { FieldValidationError } from '../types/auth'
+
 
 const { unsupportedFieldTypes, validateFieldValues } = useFieldValidation()
 
@@ -71,7 +72,7 @@ const canDelete = ref(false)
 const canRestore = ref(false)
 const deleted = ref(false)
 const deletedAt = ref<string | null>(null)
-const serverFieldErrors = ref<FieldValidationError[]>([])
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const localFieldErrors = ref<DynamicFieldErrors>({})
 const localSettingsErrors = ref<DynamicFieldErrors>({})
 const resourceWidgets = ref<ResourceWidget[]>([])
@@ -141,11 +142,6 @@ const hideInMenu = computed({
   get: () => !form.in_menu,
   set: (value: boolean) => { form.in_menu = !value },
 })
-const displayedFieldErrors = computed<DynamicFieldErrors>(() => {
-  const result = { ...localFieldErrors.value }
-  for (const error of serverFieldErrors.value) result[error.key] = fieldErrorMessage(error.code, error.params)
-  return result
-})
 const parentOptions = computed(() => {
   const excluded = descendantIDs(options.value, resourceId.value)
   return options.value
@@ -158,6 +154,7 @@ const parentOptions = computed(() => {
 
 async function load(): Promise<void> {
   loading.value = true
+  clearValidation()
   loadError.value = null
   try {
     const [details, loadedMetadata, loadedOptions, loadedSite] = await Promise.all([
@@ -237,7 +234,7 @@ async function changeType(value: ResourceTypeCode): Promise<void> {
     )
   } catch { return }
   form.type = value
-  serverFieldErrors.value = []
+  clearValidation()
   localFieldErrors.value = {}
 	localSettingsErrors.value = {}
   form.template_code = null
@@ -269,7 +266,7 @@ async function changeTemplate(selectedValue: string): Promise<void> {
   } catch { return }
   form.template_code = value
   form.fields = createFieldValues(selectedTemplate.value?.fields ?? [])
-  serverFieldErrors.value = []
+  clearValidation()
   localFieldErrors.value = {}
 	localSettingsErrors.value = {}
   if (!selectedTemplate.value?.supports_resource_widgets && activeTab.value === 'widgets') activeTab.value = 'main'
@@ -295,7 +292,7 @@ function viewResource(): void {
 
 async function submit(): Promise<void> {
   submitError.value = null
-  serverFieldErrors.value = []
+  clearValidation()
   localFieldErrors.value = {}
   if (!form.title.trim()) {
     submitError.value = 'Заполните заголовок ресурса.'
@@ -378,7 +375,7 @@ async function submit(): Promise<void> {
     notifyTreeChanged()
     ElMessage.success('Ресурс сохранён')
   } catch (error) {
-    if (error instanceof AdminAPIError) serverFieldErrors.value = error.fieldErrors
+    if (captureValidation(error)) return
     handleError(error, 'Не удалось сохранить ресурс.', true)
   } finally {
     submitting.value = false
@@ -478,6 +475,7 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
     <el-alert v-if="loadError" type="error" :closable="false" :title="loadError" show-icon />
     <el-skeleton v-else-if="loading" :rows="10" animated />
     <el-form v-else :model="form" label-position="top" class="resource-editor-form" :class="{ 'is-readonly': !canUpdate }">
+      <server-validation-errors :errors="serverFieldErrors" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? []), ...settingsFields, { key: 'type_settings', label: 'Настройки типа', options: { fields: settingsFields } }]" />
       <el-alert v-if="submitError" class="form-alert" type="error" :closable="false" :title="submitError" show-icon />
       <el-tabs v-model="activeTab" class="resource-tabs">
         <el-tab-pane label="Основное" name="main">
@@ -585,7 +583,7 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
               v-model="form.fields"
               :fields="selectedTemplate!.fields"
               :editor-tabs="selectedTemplate!.editor_tabs"
-              :errors="displayedFieldErrors"
+              :errors="localFieldErrors"
               :site-id="siteId"
               :access-token="accessToken"
             />

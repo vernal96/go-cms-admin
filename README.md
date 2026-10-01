@@ -79,3 +79,9 @@ npm pack
 
 Install the generated tarball in a clean host to validate the public `app` and
 `sdk` exports.
+
+## Field validation errors
+
+Local checks remain attached to individual fields. Server validation failures are displayed in a shared persistent summary inside the form or dialog. Messages use schema labels and one-based item numbers for nested lists; unknown fields retain their keys, and custom validator codes use a generic readable message.
+
+The existing `error.details.fields` API remains unchanged. The UI retains each original key, code and parameter object separately from display text, so field highlighting can be added later. When the server reports validation failure without field details (including some Forms/Mail operations), the summary asks the user to check their values without exposing the internal server message. Errors clear before retrying or switching editors; rejected values remain in the draft.

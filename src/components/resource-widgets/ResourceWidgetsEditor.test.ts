@@ -3,7 +3,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { adminRequest } from '../../api/admin-api'
+import { AdminAPIError, adminRequest } from '../../api/admin-api'
 import type { ResourceTemplate, ResourceWidget, WidgetDefinition } from '../../types/admin'
 import ResourceWidgetsEditor from './ResourceWidgetsEditor.vue'
 
@@ -87,6 +87,32 @@ function mountEditor(items: ResourceWidget[], canUpdate = true) {
 
 describe('ResourceWidgetsEditor drag and drop', () => {
   beforeEach(() => requestMock.mockReset())
+
+  it('retains the dialog and draft after validation and clears it on retry or editor change', async () => {
+    const source = widget(41, 'body', 0)
+    const wrapper = mountEditor([source])
+    const dialog = wrapper.getComponent({ name: 'WidgetSettingsDialog' })
+    wrapper.getComponent({ name: 'WidgetCard' }).vm.$emit('edit', source)
+    await flushPromises()
+    const errors = [{ key: 'name', code: 'regex' }]
+    requestMock.mockRejectedValueOnce(new AdminAPIError(422, 'validation_failed', 'request data is invalid', errors))
+    const payload = { view: 'default', columns: 12, margin_top: 0, margin_bottom: 0, enabled: true, params: { name: 'draft' }, param_bindings: {} }
+    dialog.vm.$emit('save', payload)
+    await flushPromises()
+    expect(dialog.props('modelValue')).toBe(true)
+    expect(dialog.props('serverErrors')).toEqual(errors)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(JSON.parse(String(requestMock.mock.calls[0]?.[2]?.body)).params).toEqual({ name: 'draft' })
+    dialog.vm.$emit('clearValidation')
+    await flushPromises()
+    expect(dialog.props('serverErrors')).toBeNull()
+    requestMock.mockResolvedValueOnce({ ...source, params: { name: 'fixed' } })
+    dialog.vm.$emit('save', { ...payload, params: { name: 'fixed' } })
+    await flushPromises()
+    expect(dialog.props('modelValue')).toBe(false)
+    expect(wrapper.emitted('update:modelValue')).toBeTruthy()
+    wrapper.unmount()
+  })
 
   it('starts only from the handle and highlights the exact empty-area target', async () => {
     const wrapper = mountEditor([widget(41, 'body', 0)])

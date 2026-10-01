@@ -3,7 +3,7 @@
 import { flushPromises, shallowMount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { adminRequest } from '../api/admin-api'
+import { AdminAPIError, adminRequest } from '../api/admin-api'
 import LibraryItemEditView from './LibraryItemEditView.vue'
 
 const replaceMock = vi.fn()
@@ -24,6 +24,33 @@ describe('LibraryItemEditView', () => {
     requestMock.mockReset()
     replaceMock.mockReset()
     delete routeParams.itemId
+  })
+
+  it('preserves rejected values, shows a summary and leaves local validation inline', async () => {
+    requestMock
+      .mockResolvedValueOnce({ types: [], templates: [{ code: 'article', label: 'Article', fields: [
+        { key: 'name', type: 'string', label: 'Название', required: true, validators: [] },
+      ], supports_resource_widgets: false }], widgets: [], extensions: [] })
+      .mockResolvedValueOnce({ items: [{ id: 9, type: 'library', display_title: 'Catalog' }] })
+      .mockResolvedValueOnce({ resource: { id: 9, type_settings: { default_item_template: 'article' } } })
+      .mockRejectedValueOnce(new AdminAPIError(422, 'validation_failed', 'request data is invalid', [{ key: 'name', code: 'regex' }]))
+    const wrapper = shallowMount(LibraryItemEditView, {
+      props: { accessToken: 'token' }, global: { renderStubDefaultSlot: true },
+    })
+    await flushPromises()
+    const model = wrapper.getComponent({ name: 'ElForm' }).props('model')
+    Object.assign(model, { title: 'Item', fields: { name: 'draft' } })
+    const save = () => wrapper.findAllComponents({ name: 'ElButton' }).find(item => item.text() === 'Сохранить')!
+    save().vm.$emit('click'); await flushPromises()
+    expect(replaceMock).not.toHaveBeenCalled()
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toEqual([{ key: 'name', code: 'regex' }])
+    expect(wrapper.getComponent({ name: 'DynamicFieldsForm' }).props('errors')).toEqual({})
+    expect(model.fields).toEqual({ name: 'draft' })
+    model.fields.name = ''
+    save().vm.$emit('click'); await flushPromises()
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toBeNull()
+    expect(wrapper.getComponent({ name: 'DynamicFieldsForm' }).props('errors')).toHaveProperty('name')
+    wrapper.unmount()
   })
 
   it('uses the Library default template and exposes no tree parent control', async () => {

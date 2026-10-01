@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from './fields/ServerValidationErrors.vue'
+import { useServerValidation } from './fields/server-validation'
 import { useFieldValidation } from './fields/use-field-validation'
 import { computed, reactive, ref, watch } from 'vue'
 import {
@@ -12,9 +14,8 @@ import {
   ElSelect,
 } from 'element-plus'
 
-import { AdminAPIError, adminRequest } from '../api/admin-api'
+import { adminRequest } from '../api/admin-api'
 import RichTextEditor from './RichTextEditor.vue'
-import type { FieldValidationError } from '../types/auth'
 import type {
   ResourceCreatePayload,
   ResourceMetadata,
@@ -27,7 +28,6 @@ import type {
 import DynamicFieldsForm from './fields/DynamicFieldsForm.vue'
 import {
   createFieldValues,
-  fieldErrorMessage,
   type DynamicFieldErrors,
 } from './fields/model'
 
@@ -43,7 +43,7 @@ const visible = ref(false)
 const loading = ref(false)
 const metadataLoading = ref(false)
 const errorMessage = ref<string | null>(null)
-const serverFieldErrors = ref<FieldValidationError[]>([])
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const localFieldErrors = ref<DynamicFieldErrors>({})
 const localSettingsErrors = ref<DynamicFieldErrors>({})
 const metadata = ref<ResourceMetadata>({ types: [], templates: [], widgets: [], extensions: [] })
@@ -82,13 +82,6 @@ const supportsContent = computed(() => capability('supports_content'))
 const supportsFields = computed(() => capability('supports_fields'))
 const supportsExternalURL = computed(() => capability('supports_external_url'))
 const supportsTargetResource = computed(() => capability('supports_target_resource'))
-const displayedFieldErrors = computed<DynamicFieldErrors>(() => {
-  const result = { ...localFieldErrors.value }
-  for (const error of serverFieldErrors.value) {
-    result[error.key] = fieldErrorMessage(error.code, error.params)
-  }
-  return result
-})
 const title = computed(() =>
   parent.value
     ? `Создать ресурс в «${parent.value.display_title}»`
@@ -111,7 +104,7 @@ async function open(parentItem: ResourceTreeItem | null): Promise<void> {
     type_settings: {},
   })
   errorMessage.value = null
-  serverFieldErrors.value = []
+  clearValidation()
   localFieldErrors.value = {}
   localSettingsErrors.value = {}
   visible.value = true
@@ -141,7 +134,7 @@ watch(
   (code, previous) => {
     if (!previous || code === previous || !visible.value) return
     form.fields = createFieldValues(selectedTemplate.value?.fields ?? [])
-    serverFieldErrors.value = []
+    clearValidation()
     localFieldErrors.value = {}
   },
 )
@@ -154,6 +147,7 @@ watch(
   () => form.type,
   () => {
     if (!visible.value) return
+    clearValidation()
     if (!supportsTemplate.value) form.template_code = null
     if (!supportsFields.value) form.fields = {}
     else form.fields = createFieldValues(selectedTemplate.value?.fields ?? [])
@@ -170,7 +164,7 @@ watch(
 
 async function submit(): Promise<void> {
   errorMessage.value = null
-  serverFieldErrors.value = []
+  clearValidation()
   localFieldErrors.value = {}
   localSettingsErrors.value = {}
   if (!form.title.trim()) {
@@ -224,8 +218,7 @@ async function submit(): Promise<void> {
     visible.value = false
     emit('created', created, parent.value?.id ?? null)
   } catch (error) {
-    if (error instanceof AdminAPIError)
-      serverFieldErrors.value = error.fieldErrors
+    if (captureValidation(error)) return
     errorMessage.value =
       error instanceof Error ? error.message : 'Не удалось создать ресурс.'
     emit('error', error)
@@ -239,6 +232,7 @@ defineExpose({ open })
 
 <template>
   <el-dialog v-model="visible" :title="title" width="520px" destroy-on-close>
+    <server-validation-errors :errors="serverFieldErrors" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? []), ...settingsFields, { key: 'type_settings', label: 'Настройки типа', options: { fields: settingsFields } }]" />
     <el-alert
       v-if="errorMessage"
       class="dialog-alert"
@@ -312,7 +306,7 @@ defineExpose({ open })
 		v-if="supportsFields && selectedTemplate"
         :fields="selectedTemplate.fields"
         :model-value="form.fields"
-        :errors="displayedFieldErrors"
+        :errors="localFieldErrors"
         @update:model-value="form.fields = $event"
       />
     </el-form>

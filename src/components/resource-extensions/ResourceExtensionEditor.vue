@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ServerValidationErrors from '../fields/ServerValidationErrors.vue'
+import { useServerValidation } from '../fields/server-validation'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   ElAlert,
@@ -37,7 +39,7 @@ const saving = ref(false)
 const previewing = ref(false)
 const loadError = ref<string | null>(null)
 const actionError = ref<string | null>(null)
-const fieldErrors = ref<Record<string, string>>({})
+const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const preview = ref<Record<string, unknown> | null>(null)
 const activeSEOGroup = ref('general')
 type ExtensionValue = string | number | boolean | null | undefined
@@ -61,6 +63,7 @@ watch(seoFieldGroups, (groups) => {
 }, { immediate: true })
 
 async function load(): Promise<void> {
+  clearActionErrors()
   loading.value = true
   loadError.value = null
   try {
@@ -123,7 +126,7 @@ function replaceValues(next: Record<string, unknown>): void {
 
 function clearActionErrors(): void {
   actionError.value = null
-  fieldErrors.value = {}
+  clearValidation()
 }
 
 function textValue(key: string): string | number {
@@ -165,17 +168,14 @@ function handleError(error: unknown, fallback: string, action: boolean): void {
     emit('unauthorized')
     return
   }
-  if (error instanceof AdminAPIError) {
-    fieldErrors.value = Object.fromEntries(
-      error.fieldErrors.map((field) => [field.key, String(field.params?.message ?? error.message)]),
-    )
-  }
+  if (action && captureValidation(error)) return
   const message = error instanceof Error ? error.message : fallback
   if (action) actionError.value = message
   else loadError.value = message
 }
 
 onMounted(() => void load())
+watch(() => [props.siteId, props.resourceId, props.metadata.code], () => void load())
 </script>
 
 <template>
@@ -184,6 +184,7 @@ onMounted(() => void load())
     <el-skeleton v-else-if="loading" :rows="8" animated />
     <template v-else>
       <el-alert v-if="!canUpdate" type="info" :closable="false" title="Настройки доступны только для чтения" show-icon />
+      <server-validation-errors :errors="serverFieldErrors" :fields="metadata.fields" />
       <el-alert v-if="actionError" type="error" :closable="false" :title="actionError" show-icon />
 
       <el-form label-position="top">
@@ -194,7 +195,6 @@ onMounted(() => void load())
                 v-for="field in group.fields"
                 :key="field.key"
                 :label="field.label"
-                :error="fieldErrors[field.key]"
               >
                 <el-switch
                   v-if="field.control === 'switch'"
@@ -219,7 +219,6 @@ onMounted(() => void load())
             v-for="field in metadata.fields"
             :key="field.key"
             :label="field.label"
-            :error="fieldErrors[field.key]"
           >
             <el-switch
               v-if="field.control === 'switch'"

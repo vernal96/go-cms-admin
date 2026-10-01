@@ -29,8 +29,10 @@ export function validatorNumber(field: FieldDefinition, code: string): number {
   return Number.isFinite(value) && value >= 0 ? value : 0
 }
 
+const listValidatorCodes = new Set(['min_items', 'max_items', 'items_between', 'items_count', 'unique_items', 'contains', 'doesnt_contain'])
+
 export function singleValueField(field: FieldDefinition): FieldDefinition {
-  return { ...field, required: true, validators: (field.validators ?? []).filter(item => !['min_items', 'max_items', 'items_between', 'items_count', 'unique_items', 'contains', 'doesnt_contain'].includes(item.type)), options: { ...field.options, multiple: false } }
+  return { ...field, required: true, validators: (field.validators ?? []).filter(item => !listValidatorCodes.has(item.type)), options: { ...field.options, multiple: false } }
 }
 
 export interface FieldEditorResolver {
@@ -110,6 +112,7 @@ export function validateFieldValues(
       const items: unknown[] = Array.isArray(value) ? value : []
       if (items.length < minimum) errors[field.key] = 'Поле обязательно.'
       for (const validator of field.validators ?? []) {
+        if (!listValidatorCodes.has(validator.type)) continue
         const message = clientValidatorMessage(validator.type, validator.options, items)
         if (message) { errors[field.key] = message; break }
       }
@@ -195,7 +198,40 @@ export function fieldErrorMessage(code: string, params: Record<string, unknown> 
     case 'max': return `Максимальное значение: ${value}.`
     case 'min_length': return `Минимум символов: ${value}.`
     case 'max_length': return `Максимум символов: ${value}.`
-    default: return `Значение не прошло проверку «${code}».`
+    case 'between': return `Значение должно быть от ${params.min} до ${params.max}.`
+    case 'multiple_of': return `Значение должно быть кратно ${value}.`
+    case 'digits': return `Количество цифр: ${value}.`
+    case 'min_digits': return `Минимум цифр: ${value}.`
+    case 'max_digits': return `Максимум цифр: ${value}.`
+    case 'digits_between': return `Количество цифр должно быть от ${params.min} до ${params.max}.`
+    case 'length': return `Количество символов: ${value}.`
+    case 'length_between': return `Количество символов должно быть от ${params.min} до ${params.max}.`
+    case 'items_count': return `Количество значений: ${value}.`
+    case 'items_between': return `Количество значений должно быть от ${params.min} до ${params.max}.`
+    case 'alpha': return 'Допустимы только буквы.'
+    case 'alpha_dash': return 'Допустимы только буквы, цифры, дефис и подчёркивание.'
+    case 'alpha_numeric': return 'Допустимы только буквы и цифры.'
+    case 'ascii': return 'Допустимы только символы ASCII.'
+    case 'lowercase': return 'Используйте нижний регистр.'
+    case 'uppercase': return 'Используйте верхний регистр.'
+    case 'starts_with': return `Значение должно начинаться с «${value}».`
+    case 'ends_with': return `Значение должно заканчиваться на «${value}».`
+    case 'doesnt_start_with': return `Значение не должно начинаться с «${value}».`
+    case 'doesnt_end_with': return `Значение не должно заканчиваться на «${value}».`
+    case 'contains': return 'Добавьте хотя бы одно из требуемых значений или фрагментов текста.'
+    case 'doesnt_contain': return 'Обнаружены запрещённые значения или фрагменты текста.'
+    case 'not_regex': return 'Значение соответствует запрещённому формату.'
+    case 'url': return 'Введите корректный URL.'
+    case 'ip': return 'Введите корректный IP-адрес.'
+    case 'ipv4': return 'Введите корректный IPv4-адрес.'
+    case 'ipv6': return 'Введите корректный IPv6-адрес.'
+    case 'mac': return 'Введите корректный MAC-адрес.'
+    case 'uuid': return 'Введите корректный UUID.'
+    case 'ulid': return 'Введите корректный ULID.'
+    case 'hex_color': return 'Введите цвет в формате HEX, например #ff0000.'
+    case 'accepted': return 'Необходимо подтвердить согласие.'
+    case 'declined': return 'Значение должно быть отключено.'
+    default: return 'Значение не прошло проверку.'
   }
 }
 

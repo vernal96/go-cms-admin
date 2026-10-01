@@ -90,6 +90,21 @@ const fields: FieldDefinition[] = [
 ]
 
 describe('dynamic field model', () => {
+  it.each(['string', 'select'])('applies membership to each %s list item and cardinality to the list', (type) => {
+    const field: FieldDefinition = {
+      key: 'tags', type, label: 'Tags', required: false,
+      options: { multiple: true, choices: ['a', 'b', 'c'].map(value => ({ value, label: value })) },
+      validators: [{ type: 'in', options: { values: ['a', 'b'] } }, { type: 'max_items', options: { value: 2 } }],
+    }
+    expect(validateFieldValues([field], { tags: [] })).toEqual({})
+    expect(validateFieldValues([field], { tags: ['a', 'b'] })).toEqual({})
+    expect(validateFieldValues([field], { tags: ['a', 'c'] })).toEqual({ 'tags[1]': fieldErrorMessage('in') })
+    expect(validateFieldValues([field], { tags: ['a', 'b', 'c'] })).toMatchObject({ tags: fieldErrorMessage('max_items', { value: 2 }) })
+    field.validators = [{ type: 'not_in', options: { values: ['b'] } }]
+    expect(validateFieldValues([field], { tags: ['a'] })).toEqual({})
+    expect(validateFieldValues([field], { tags: ['a', 'b'] })).toEqual({ 'tags[1]': fieldErrorMessage('not_in') })
+  })
+
   it('initializes checkbox and multiple select without pre-filling other required values', () => {
     expect(createFieldValues(fields)).toEqual({
       text: '',

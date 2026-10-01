@@ -35,6 +35,26 @@ describe('SiteForm', () => {
     })
   })
 
+  it('keeps server errors in the summary and local errors under fields', async () => {
+    const errors = [{ key: 'title', code: 'regex', params: { value: '^ok$' } }]
+    const wrapper = shallowMount(SiteForm, {
+      props: { accessToken: 'token', fieldErrors: errors },
+      global: { renderStubDefaultSlot: true },
+    })
+    await flushPromises()
+    const dynamic = wrapper.getComponent({ name: 'DynamicFieldsForm' })
+    expect(dynamic.props('errors')).toEqual({})
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toEqual(errors)
+    const form = wrapper.getComponent({ name: 'ElForm' })
+    Object.assign(form.props('model'), { domain: 'example.com', settings: { title: 'x' } })
+    form.vm.$emit('submit', new Event('submit'))
+    await flushPromises()
+    expect(dynamic.props('errors')).toEqual({ title: 'Минимум символов: 2.' })
+    expect(wrapper.emitted('clearValidation')).toBeTruthy()
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    wrapper.unmount()
+  })
+
   it('initializes and submits settings from profile metadata', async () => {
     const wrapper = shallowMount(SiteForm, {
       props: { accessToken: 'token' },

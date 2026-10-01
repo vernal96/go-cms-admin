@@ -48,7 +48,10 @@ it.each([422, 409])('preserves the draft on HTTP %s and does not close', async s
  expect(wrapper.find('input').element.value).toBe('draft')
  expect(wrapper.emitted('update:modelValue')).toBeUndefined()
  if (status === 409) expect(wrapper.text()).toContain('Загрузить заново')
- else expect(wrapper.findComponent(DynamicFieldsForm).props('errors')).toHaveProperty('alt')
+ else {
+  expect(wrapper.findComponent(DynamicFieldsForm).props('errors')).toEqual({})
+  expect(wrapper.text()).toContain('Alt: Максимальное значение: 3.')
+ }
  wrapper.unmount()
 })
 it('ignores a late response after switching Media', async () => {

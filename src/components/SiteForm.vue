@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ServerValidationErrors from './fields/ServerValidationErrors.vue'
 import { useFieldValidation } from './fields/use-field-validation'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
@@ -18,7 +19,6 @@ import DynamicFieldsForm from './fields/DynamicFieldsForm.vue'
 import TabbedDynamicFieldsForm from './fields/TabbedDynamicFieldsForm.vue'
 import {
   createFieldValues,
-  fieldErrorMessage,
   type DynamicFieldErrors,
 } from './fields/model'
 import type {
@@ -36,12 +36,13 @@ const props = defineProps<{
   editing?: boolean
   submitting?: boolean
   error?: string | null
-  fieldErrors?: FieldValidationError[]
+  fieldErrors?: FieldValidationError[] | null
 }>()
 const emit = defineEmits<{
   submit: [payload: SiteFormPayload]
   cancel: []
   unauthorized: []
+  clearValidation: []
 }>()
 
 const profiles = ref<SiteProfile[]>([])
@@ -60,17 +61,12 @@ const selectedProfile = computed(
     profiles.value.find((profile) => profile.code === form.profile_code) ??
     null,
 )
-const displayedFieldErrors = computed<DynamicFieldErrors>(() => {
-  const result = { ...localFieldErrors.value }
-  for (const error of props.fieldErrors ?? []) {
-    result[error.key] = fieldErrorMessage(error.code, error.params)
-  }
-  return result
-})
 
 watch(
   () => props.initial,
   (value) => {
+    emit('clearValidation')
+    localFieldErrors.value = {}
     if (value) Object.assign(form, value, { settings: { ...value.settings } })
   },
   { immediate: true },
@@ -102,12 +98,14 @@ watch(
   () => form.profile_code,
   (code, previous) => {
     if (!previous || code === previous || profiles.value.length === 0) return
+    emit('clearValidation')
     form.settings = createFieldValues(selectedProfile.value?.fields ?? [])
     localFieldErrors.value = {}
   },
 )
 
 function submit(): void {
+  emit('clearValidation')
   localError.value = null
   localFieldErrors.value = {}
   if (!form.domain.trim() || !form.profile_code || !form.locale.trim()) {
@@ -148,6 +146,7 @@ function submit(): void {
       :closable="false"
       :title="error || localError || ''"
     />
+    <server-validation-errors :errors="fieldErrors" :fields="[{ key: 'domain', label: 'Домен' }, { key: 'profile_code', label: 'Профиль' }, { key: 'locale', label: 'Локаль' }, ...(selectedProfile?.fields ?? [])]" />
     <el-form-item label="Домен" required>
       <el-input v-model="form.domain" placeholder="example.com" />
     </el-form-item>
@@ -173,7 +172,7 @@ function submit(): void {
       :access-token="accessToken"
       :editor-tabs="selectedProfile.editor_tabs"
       :model-value="form.settings"
-      :errors="displayedFieldErrors"
+      :errors="localFieldErrors"
       @update:model-value="form.settings = $event"
     />
     <dynamic-fields-form
@@ -181,7 +180,7 @@ function submit(): void {
       :fields="selectedProfile.fields"
       :access-token="accessToken"
       :model-value="form.settings"
-      :errors="displayedFieldErrors"
+      :errors="localFieldErrors"
       @update:model-value="form.settings = $event"
     />
     <div class="form-actions">

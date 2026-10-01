@@ -174,6 +174,37 @@ describe('Mail admin UI', () => {
     expect(options).not.toContain('data.name')
   })
 
+  it('shows server validation for mail preview and clears it before a locally blocked retry', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes('/send/templates')) return response({ items: [{
+        id: 3, code: 'welcome', name: 'Welcome', enabled: true,
+        variables: [{ key: 'email', type: 'email', label: 'Email', required: true, validators: [] }],
+      }] })
+      return response({ error: { code: 'validation_failed', message: 'mail data is invalid', details: {
+        fields: [{ key: 'email', code: 'regex' }],
+      } } }, 422)
+    }))
+    const wrapper = shallowMount(MailSendView, { props: { accessToken: 'token', permissions } })
+    await flushPromises()
+    wrapper.getComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', 3)
+    await flushPromises()
+    const dynamic = wrapper.getComponent({ name: 'DynamicFieldsForm' })
+    dynamic.vm.$emit('update:modelValue', { email: 'draft@example.test' })
+    await flushPromises()
+    const preview = () => wrapper.findAllComponents({ name: 'ElButton' }).find(item => item.text() === 'Предпросмотр')!
+    preview().vm.$emit('click')
+    await flushPromises()
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toEqual([{ key: 'email', code: 'regex' }])
+    expect(dynamic.props('errors')).toEqual({})
+    expect(dynamic.props('modelValue')).toEqual({ email: 'draft@example.test' })
+    dynamic.vm.$emit('update:modelValue', { email: '' })
+    await flushPromises()
+    preview().vm.$emit('click')
+    await flushPromises()
+    expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toBeNull()
+    expect(dynamic.props('errors')).toHaveProperty('email')
+  })
+
   it('previews backend-rendered content, shows warnings, and queues once', async () => {
     const calls: Array<{ url: string; method: string }> = []
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
