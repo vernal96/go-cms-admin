@@ -27,7 +27,7 @@ describe('ResourceSiteTransferDialog', () => {
   it('excludes the current site and sends target id with the expected version', async () => {
     requestMock
       .mockResolvedValueOnce({
-        items: [{ id: 8, domain: 'target.example' }],
+        items: [{ id: 8, name: 'Целевой сайт', domain: 'target.example' }],
         pagination: { page: 1, per_page: 10, total: 1 },
       })
       .mockResolvedValueOnce(transferred)
@@ -63,14 +63,14 @@ describe('ResourceSiteTransferDialog', () => {
     expect(wrapper.emitted('transferred')?.[0]?.[0]).toEqual({
       resource: transferred,
       source,
-      target: { id: 8, domain: 'target.example' },
+      target: { id: 8, name: 'Целевой сайт', domain: 'target.example' },
     })
   })
 
   it('keeps the dialog open and shows an API error', async () => {
     requestMock
       .mockResolvedValueOnce({
-        items: [{ id: 8, domain: 'target.example' }],
+        items: [{ id: 8, name: 'Целевой сайт', domain: 'target.example' }],
         pagination: { page: 1, per_page: 10, total: 1 },
       })
       .mockRejectedValueOnce(new Error('Есть ссылки между сайтами'))

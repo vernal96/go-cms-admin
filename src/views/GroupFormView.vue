@@ -272,15 +272,15 @@ function handleError(caught: unknown): void {
               @clear="updateSiteSearch"
             />
             <el-table :data="sites" border class="permission-matrix" v-loading="sitesLoading">
-              <el-table-column prop="domain" label="Сайт" min-width="280" />
+              <el-table-column prop="name" label="Сайт" min-width="280" />
               <el-table-column label="Просмотр" width="150" align="center">
-                <template #default="{ row }"><el-checkbox :model-value="siteGrant(row.id).can_view" :disabled="!canManage" :aria-label="`${row.domain} view`" @change="updateSiteAccess(row.id, 'view', Boolean($event))" /></template>
+                <template #default="{ row }"><el-checkbox :model-value="siteGrant(row.id).can_view" :disabled="!canManage" :aria-label="`${row.name} view`" @change="updateSiteAccess(row.id, 'view', Boolean($event))" /></template>
               </el-table-column>
               <el-table-column label="Редактирование" width="170" align="center">
-                <template #default="{ row }"><el-checkbox :model-value="siteGrant(row.id).can_edit" :disabled="!canManage" :aria-label="`${row.domain} edit`" @change="updateSiteAccess(row.id, 'edit', Boolean($event))" /></template>
+                <template #default="{ row }"><el-checkbox :model-value="siteGrant(row.id).can_edit" :disabled="!canManage" :aria-label="`${row.name} edit`" @change="updateSiteAccess(row.id, 'edit', Boolean($event))" /></template>
               </el-table-column>
               <el-table-column label="Удаление" width="150" align="center">
-                <template #default="{ row }"><el-checkbox :model-value="siteGrant(row.id).can_delete" :disabled="!canManage" :aria-label="`${row.domain} delete`" @change="updateSiteAccess(row.id, 'delete', Boolean($event))" /></template>
+                <template #default="{ row }"><el-checkbox :model-value="siteGrant(row.id).can_delete" :disabled="!canManage" :aria-label="`${row.name} delete`" @change="updateSiteAccess(row.id, 'delete', Boolean($event))" /></template>
               </el-table-column>
             </el-table>
             <el-pagination

@@ -22,7 +22,7 @@ export function useSelectedSite() {
         `/api/sites/${stored.id}`,
         accessToken,
       )
-      setSelected({ id: response.site.id, domain: response.site.domain })
+      setSelected({ id: response.site.id, name: response.site.name, domain: response.site.domain })
     } catch (error) {
       if (error instanceof AdminAPIError && [403, 404].includes(error.status)) {
         clearSelected()
@@ -70,8 +70,8 @@ function readStored(): SiteOption | null {
   if (typeof localStorage === 'undefined') return null
   try {
     const value = JSON.parse(localStorage.getItem(storageKey) ?? 'null') as Partial<SiteOption> | null
-    return value && Number.isInteger(value.id) && Number(value.id) > 0 && typeof value.domain === 'string'
-      ? { id: Number(value.id), domain: value.domain }
+    return value && Number.isInteger(value.id) && Number(value.id) > 0 && typeof value.name === 'string' && typeof value.domain === 'string'
+      ? { id: Number(value.id), name: value.name, domain: value.domain }
       : null
   } catch {
     localStorage.removeItem(storageKey)

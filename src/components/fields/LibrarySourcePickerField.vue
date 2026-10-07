@@ -4,7 +4,7 @@ import { ElAlert, ElOption, ElPagination, ElSelect } from 'element-plus'
 import { adminRequest } from '../../api/admin-api'
 import type { SiteListResponse, SiteOption } from '../../types/admin'
 
-interface Source { id: number; site_id: number; domain: string; title: string; path: string | null }
+interface Source { id: number; site_id: number; site_name: string; domain: string; title: string; path: string | null }
 interface Sources { items: Source[]; pagination: { total: number } }
 const props = defineProps<{ siteId?: number; accessToken?: string }>()
 const model = defineModel<number | undefined>()
@@ -75,7 +75,7 @@ async function hydrate(): Promise<void> {
     if (!selected) { error.value = 'Библиотека-источник недоступна.'; return }
     sourceSite.value = selected.site_id
     sources.value = [selected]
-    if (!sites.value.some(item => item.id === selected.site_id)) sites.value.unshift({ id: selected.site_id, domain: selected.domain })
+    if (!sites.value.some(item => item.id === selected.site_id)) sites.value.unshift({ id: selected.site_id, name: selected.site_name, domain: selected.domain })
   } catch (cause) { error.value = cause instanceof Error ? cause.message : 'Не удалось загрузить источник.' }
 }
 
@@ -86,7 +86,7 @@ watch(model, () => void hydrate())
 <template>
   <div class="library-source-picker">
     <el-select v-model="sourceSite" aria-label="Сайт-источник" placeholder="Выберите сайт-источник" filterable remote :remote-method="loadSites" @change="changeSite">
-      <el-option v-for="item in sites" :key="item.id" :label="item.domain" :value="item.id" />
+      <el-option v-for="item in sites" :key="item.id" :label="item.name" :value="item.id" />
     </el-select>
     <el-pagination v-if="siteTotal > 30" v-model:current-page="sitePage" :page-size="30" :total="siteTotal" layout="prev, next" @current-change="loadSites()" />
     <el-select v-model="model" aria-label="Библиотека-источник" placeholder="Выберите библиотеку" filterable remote :remote-method="load" :loading="loading" :disabled="!sourceSite" @visible-change="visible => visible && load()">

@@ -26,7 +26,7 @@ describe('ResourceTree', () => {
     requestMock.mockReset()
     requestVoidMock.mockReset()
     useSelectedSite().reset()
-    useSelectedSite().setSelected({ id: 7, domain: 'example.com' })
+    useSelectedSite().setSelected({ id: 7, name: 'Example', domain: 'example.com' })
   })
 
   it('combines hidden, unpublished, and deleted states without replacing one another', () => {
@@ -108,7 +108,7 @@ describe('ResourceTree', () => {
     expect(wrapper.findComponent({ name: 'ElButton' }).exists()).toBe(false)
     const initialKey = wrapper.findComponent({ name: 'ElTree' }).vm.$.vnode.key
 
-    useSelectedSite().setSelected({ id: 8, domain: 'next.example.com' })
+    useSelectedSite().setSelected({ id: 8, name: 'Next', domain: 'next.example.com' })
     await nextTick()
     await flushPromises()
 

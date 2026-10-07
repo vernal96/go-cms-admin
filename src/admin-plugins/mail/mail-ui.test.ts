@@ -41,7 +41,7 @@ function response(value: unknown, status = 200): Response {
 
 beforeEach(() => {
   config.global.renderStubDefaultSlot = true
-  useSelectedSite().setSelected({ id: 5, domain: 'example.test' })
+  useSelectedSite().setSelected({ id: 5, name: 'Example', domain: 'example.test' })
 })
 
 afterEach(() => {

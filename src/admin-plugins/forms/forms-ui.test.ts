@@ -64,7 +64,7 @@ const builderStubs = {
   ElCard: { name: 'ElCard', template: '<div><slot name="header" /><slot /></div>' },
 }
 
-beforeEach(() => { config.global.renderStubDefaultSlot = false; useSelectedSite().setSelected({ id: 5, domain: 'example.test' }) })
+beforeEach(() => { config.global.renderStubDefaultSlot = false; useSelectedSite().setSelected({ id: 5, name: 'Example', domain: 'example.test' }) })
 afterEach(() => { config.global.renderStubDefaultSlot = false; useSelectedSite().reset(); vi.restoreAllMocks() })
 
 describe('Forms admin UI', () => {

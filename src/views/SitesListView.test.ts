@@ -26,7 +26,7 @@ function listResponse(page: number, items: Array<Record<string, unknown>>) {
 describe('SitesListView', () => {
   beforeEach(() => {
     useSelectedSite().reset()
-    useSelectedSite().setSelected({ id: 7, domain: 'selected.example.com' })
+    useSelectedSite().setSelected({ id: 7, name: 'Выбранный сайт', domain: 'selected.example.com' })
   })
 
   afterEach(() => {
@@ -43,6 +43,7 @@ describe('SitesListView', () => {
       if (url.includes('page=2')) {
         return jsonResponse(listResponse(2, [{
           id: 7,
+          name: 'Выбранный сайт',
           domain: 'selected.example.com',
           profile_code: 'dev',
           locale: 'ru-RU',
@@ -53,6 +54,7 @@ describe('SitesListView', () => {
       }
       return jsonResponse(listResponse(1, [{
         id: 1,
+        name: 'Первый сайт',
         domain: 'first.example.com',
         profile_code: 'dev',
         locale: 'ru-RU',
@@ -77,11 +79,13 @@ describe('SitesListView', () => {
     })
     await flushPromises()
     const table = wrapper.findComponent({ name: 'AdminDataTable' })
+    expect((table.props('columns') as Array<{ prop: string }>)[0]?.prop).toBe('name')
 
     table.vm.$emit('page-change', 2)
     await flushPromises()
     table.vm.$emit('action', 'delete', {
       id: 7,
+      name: 'Выбранный сайт',
       domain: 'selected.example.com',
       profile_code: 'dev',
       locale: 'ru-RU',
@@ -92,6 +96,7 @@ describe('SitesListView', () => {
     await flushPromises()
 
     expect(useSelectedSite().selectedSite.value).toBeNull()
+    expect(ElMessageBox.confirm).toHaveBeenCalledWith(expect.stringContaining('Выбранный сайт'), 'Удаление сайта', expect.any(Object))
     const calls = fetchMock.mock.calls.map(([input, init]) => ({ url: String(input), method: init?.method }))
     expect(calls).toContainEqual({ url: '/api/sites/7', method: 'DELETE' })
     expect(calls[calls.length - 1]?.url).toContain('page=1')
@@ -100,6 +105,7 @@ describe('SitesListView', () => {
   it('uses per-site capabilities to hide edit and delete actions', async () => {
 	vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(listResponse(1, [{
 	  id: 3,
+	  name: 'Только просмотр',
 	  domain: 'view-only.example.com',
 	  profile_code: 'dev',
 	  locale: 'ru-RU',

@@ -30,6 +30,7 @@ export interface PermissionSet {
 export interface Site {
   id: number
   profile_code: string
+  name: string
   domain: string
   locale: string
   settings: Record<string, unknown>
@@ -45,6 +46,7 @@ export interface SiteCapabilities {
 
 export interface SiteOption {
   id: number
+  name: string
   domain: string
 }
 
@@ -186,6 +188,7 @@ export interface SiteProfilesResponse {
 
 export interface SiteFormPayload {
   profile_code: string
+  name: string
   domain: string
   locale: string
   is_public: boolean
@@ -194,6 +197,7 @@ export interface SiteFormPayload {
 
 export interface DashboardSite {
   id: number
+  name: string
   domain: string
   is_public: boolean
   resource_count?: number

@@ -12,9 +12,9 @@ describe('useSelectedSite', () => {
   })
 
   it('validates and restores a stored site through the API', async () => {
-    localStorage.setItem('go-cms.admin.selected-site', JSON.stringify({ id: 7, domain: 'old.test' }))
+    localStorage.setItem('go-cms.admin.selected-site', JSON.stringify({ id: 7, name: 'Старый сайт', domain: 'old.test' }))
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      site: { id: 7, domain: 'example.com', profile_code: 'dev', locale: 'ru-RU', settings: {}, is_public: false },
+      site: { id: 7, name: 'Новый сайт', domain: 'example.com', profile_code: 'dev', locale: 'ru-RU', settings: {}, is_public: false },
       permissions: { read: true, create: true, update: true, delete: true },
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
     vi.stubGlobal('fetch', fetchMock)
@@ -25,11 +25,11 @@ describe('useSelectedSite', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/sites/7', expect.objectContaining({
       headers: expect.any(Headers),
     }))
-    expect(selected.selectedSite.value).toEqual({ id: 7, domain: 'example.com' })
+    expect(selected.selectedSite.value).toEqual({ id: 7, name: 'Новый сайт', domain: 'example.com' })
   })
 
   it('clears a stored site that is no longer available', async () => {
-    localStorage.setItem('go-cms.admin.selected-site', JSON.stringify({ id: 8, domain: 'missing.test' }))
+    localStorage.setItem('go-cms.admin.selected-site', JSON.stringify({ id: 8, name: 'Недоступный сайт', domain: 'missing.test' }))
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       error: { code: 'not_found', message: 'not found' },
     }), { status: 404, headers: { 'Content-Type': 'application/json' } })))

@@ -150,7 +150,7 @@ onBeforeUnmount(() => controller?.abort())
           description="Сайтов пока нет"
         />
         <el-table v-else :data="dashboard.sites.items" stripe class="dashboard-sites-table">
-          <el-table-column prop="domain" label="Домен" min-width="260" />
+          <el-table-column prop="name" label="Название" min-width="260" />
           <el-table-column label="Статус" width="150">
             <template #default="{ row }">
               <el-tag :type="row.is_public ? 'success' : 'info'" effect="light">

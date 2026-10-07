@@ -50,6 +50,7 @@ const loadingProfiles = ref(true)
 const localError = ref<string | null>(null)
 const localFieldErrors = ref<DynamicFieldErrors>({})
 const form = reactive<SiteFormPayload>({
+  name: '',
   domain: '',
   profile_code: '',
   locale: 'ru-RU',
@@ -108,8 +109,8 @@ function submit(): void {
   emit('clearValidation')
   localError.value = null
   localFieldErrors.value = {}
-  if (!form.domain.trim() || !form.profile_code || !form.locale.trim()) {
-    localError.value = 'Заполните домен, профиль и локаль.'
+  if (!form.name.trim() || !form.domain.trim() || !form.profile_code || !form.locale.trim()) {
+    localError.value = 'Заполните название, домен, профиль и локаль.'
     return
   }
   const fields = selectedProfile.value?.fields ?? []
@@ -121,6 +122,7 @@ function submit(): void {
   localFieldErrors.value = validateFieldValues(fields, form.settings)
   if (Object.keys(localFieldErrors.value).length > 0) return
   emit('submit', {
+    name: form.name.trim(),
     domain: form.domain.trim(),
     profile_code: form.profile_code,
     locale: form.locale.trim(),
@@ -146,7 +148,10 @@ function submit(): void {
       :closable="false"
       :title="error || localError || ''"
     />
-    <server-validation-errors :errors="fieldErrors" :fields="[{ key: 'domain', label: 'Домен' }, { key: 'profile_code', label: 'Профиль' }, { key: 'locale', label: 'Локаль' }, ...(selectedProfile?.fields ?? [])]" />
+    <server-validation-errors :errors="fieldErrors" :fields="[{ key: 'name', label: 'Название' }, { key: 'domain', label: 'Домен' }, { key: 'profile_code', label: 'Профиль' }, { key: 'locale', label: 'Локаль' }, ...(selectedProfile?.fields ?? [])]" />
+    <el-form-item label="Название" required>
+      <el-input v-model="form.name" placeholder="Название сайта" />
+    </el-form-item>
     <el-form-item label="Домен" required>
       <el-input v-model="form.domain" placeholder="example.com" />
     </el-form-item>

@@ -112,7 +112,7 @@ onBeforeUnmount(() => {
       @visible-change="handleVisible"
       @change="choose"
     >
-      <el-option v-for="item in options" :key="item.id" :label="item.domain" :value="item.id" />
+      <el-option v-for="item in options" :key="item.id" :label="item.name" :value="item.id" />
       <template #footer>
         <el-pagination
           v-model:current-page="page"

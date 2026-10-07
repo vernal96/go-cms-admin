@@ -46,7 +46,7 @@ describe('SiteForm', () => {
     expect(dynamic.props('errors')).toEqual({})
     expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toEqual(errors)
     const form = wrapper.getComponent({ name: 'ElForm' })
-    Object.assign(form.props('model'), { domain: 'example.com', settings: { title: 'x' } })
+    Object.assign(form.props('model'), { name: 'Example', domain: 'example.com', settings: { title: 'x' } })
     form.vm.$emit('submit', new Event('submit'))
     await flushPromises()
     expect(dynamic.props('errors')).toEqual({ title: 'Минимум символов: 2.' })
@@ -65,6 +65,7 @@ describe('SiteForm', () => {
     const formComponent = wrapper.findComponent({ name: 'ElForm' })
     const model = formComponent.props('model') as Record<string, unknown>
     Object.assign(model, {
+      name: ' Example ',
       domain: ' example.com ',
       profile_code: 'dev',
       locale: ' ru-RU ',
@@ -75,12 +76,27 @@ describe('SiteForm', () => {
     await flushPromises()
 
     expect(wrapper.emitted('submit')?.[0]?.[0]).toEqual({
+      name: 'Example',
       domain: 'example.com',
       profile_code: 'dev',
       locale: 'ru-RU',
       is_public: true,
       settings: { title: 'Demo' },
     })
+  })
+
+  it('requires a non-empty site name', async () => {
+    const wrapper = shallowMount(SiteForm, {
+      props: { accessToken: 'token' },
+      global: { renderStubDefaultSlot: true },
+    })
+    await flushPromises()
+    const form = wrapper.getComponent({ name: 'ElForm' })
+    Object.assign(form.props('model'), { name: '   ', domain: 'example.com', profile_code: 'dev', locale: 'ru-RU' })
+    form.vm.$emit('submit', new Event('submit'))
+    await flushPromises()
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    expect(wrapper.getComponent({ name: 'ElAlert' }).props('title')).toContain('Заполните название')
   })
 
 	it('uses tabbed settings only while editing a site', async () => {

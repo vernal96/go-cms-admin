@@ -68,7 +68,7 @@ describe('DashboardView', () => {
         total: 2,
         public: 1,
         private: 1,
-        items: [{ id: 1, domain: 'example.test', is_public: true, resource_count: 7 }],
+        items: [{ id: 1, name: 'Example', domain: 'example.test', is_public: true, resource_count: 7 }],
       },
       resources: { total: 7 },
       users: { total: 5, active: 4, blocked: 1 },
@@ -86,7 +86,7 @@ describe('DashboardView', () => {
     expect(wrapper.find('[data-testid="resource-count-column"]').exists()).toBe(true)
     const table = wrapper.findComponent({ name: 'ElTable' })
     expect(table.props('data')).toEqual([
-      { id: 1, domain: 'example.test', is_public: true, resource_count: 7 },
+      { id: 1, name: 'Example', domain: 'example.test', is_public: true, resource_count: 7 },
     ])
     expect(wrapper.text()).toContain('Активных: 4')
     await wrapper.findComponent({ name: 'ElButton' }).trigger('click')

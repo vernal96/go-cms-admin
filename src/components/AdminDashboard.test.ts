@@ -74,7 +74,7 @@ describe('AdminDashboard', () => {
   })
 
   it('does not restore a stored site or mount resource navigation without site read access', async () => {
-    localStorage.setItem('go-cms.admin.selected-site', JSON.stringify({ id: 7, domain: 'stored.test' }))
+    localStorage.setItem('go-cms.admin.selected-site', JSON.stringify({ id: 7, name: 'Сохранённый сайт', domain: 'stored.test' }))
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 

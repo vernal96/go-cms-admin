@@ -10,14 +10,15 @@ beforeEach(() => { request.mockReset() })
 
 it('restores the saved source and lets the editor select a library on another site', async () => {
   request.mockImplementation(async (path) => {
-    if (path.startsWith('/api/sites?')) return { items: [{ id: 2, domain: 'source.test' }, { id: 3, domain: 'other.test' }], pagination: { total: 2 } } as never
-    if (path.includes('selected_id=10')) return { items: [{ id: 10, site_id: 2, domain: 'source.test', title: 'Source', path: '/source' }], pagination: { total: 1 } } as never
-    return { items: [{ id: 30, site_id: 3, domain: 'other.test', title: 'Other', path: '/other' }], pagination: { total: 1 } } as never
+    if (path.startsWith('/api/sites?')) return { items: [{ id: 3, name: 'Другой сайт', domain: 'other.test' }], pagination: { total: 1 } } as never
+    if (path.includes('selected_id=10')) return { items: [{ id: 10, site_id: 2, site_name: 'Источник', domain: 'source.test', title: 'Source', path: '/source' }], pagination: { total: 1 } } as never
+    return { items: [{ id: 30, site_id: 3, site_name: 'Другой сайт', domain: 'other.test', title: 'Other', path: '/other' }], pagination: { total: 1 } } as never
   })
   const wrapper = shallowMount(LibrarySourcePickerField, { global: { renderStubDefaultSlot: true }, props: { modelValue: 10, siteId: 7, accessToken: 'token', 'onUpdate:modelValue': (value) => { void wrapper.setProps({ modelValue: value }) } } })
   await flushPromises()
   const selects = wrapper.findAllComponents({ name: 'ElSelect' })
   expect(selects[0]!.props('modelValue')).toBe(2)
+  expect(wrapper.findAllComponents({ name: 'ElOption' }).some(option => option.props('label') === 'Источник')).toBe(true)
   expect(selects[1]!.props('modelValue')).toBe(10)
   selects[0]!.vm.$emit('update:modelValue', 3)
   selects[0]!.vm.$emit('change', 3)

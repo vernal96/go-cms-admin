@@ -170,8 +170,8 @@ function openSiteTransfer(item: TreeNodeData): void {
   transferDialogRef.value?.open(item)
 }
 
-function handleSiteTransferred(payload: { resource: { id: number }; source: ResourceTreeItem; target: { id: number; domain: string } }): void {
-  ElMessage.success(`Ресурс перенесён на сайт ${payload.target.domain}`)
+function handleSiteTransferred(payload: { resource: { id: number }; source: ResourceTreeItem; target: { id: number; name: string } }): void {
+  ElMessage.success(`Ресурс перенесён на сайт ${payload.target.name}`)
   notifyChanged([siteId.value, payload.target.id])
   if (Number(router.currentRoute?.value.params.resourceId) === payload.source.id) {
     void router.push('/admin/dashboard')

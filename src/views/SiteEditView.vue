@@ -33,6 +33,7 @@ async function load(): Promise<void> {
       props.accessToken,
     )
     initial.value = {
+      name: response.site.name,
       domain: response.site.domain,
       profile_code: response.site.profile_code,
       locale: response.site.locale,
@@ -59,6 +60,7 @@ async function submit(payload: SiteFormPayload): Promise<void> {
     if (selected.selectedSite.value?.id === response.site.id) {
       selected.setSelected({
         id: response.site.id,
+        name: response.site.name,
         domain: response.site.domain,
       })
     }

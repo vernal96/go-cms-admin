@@ -14,7 +14,7 @@ const requestMock = vi.mocked(adminRequest)
 
 function response(domain: string) {
   return {
-    items: [{ id: domain === 'new.example.com' ? 2 : 1, domain }],
+    items: [{ id: domain === 'new.example.com' ? 2 : 1, name: domain === 'new.example.com' ? 'Новый сайт' : 'Старый сайт', domain }],
     pagination: { page: 1, per_page: 10, total: 1 },
   }
 }
@@ -64,11 +64,11 @@ describe('SiteSelector', () => {
     await flushPromises()
 
     const labels = wrapper.findAllComponents({ name: 'ElOption' }).map((option) => option.props('label'))
-    expect(labels).toEqual(['new.example.com'])
+    expect(labels).toEqual(['Новый сайт'])
   })
 
   it('removes a selected site when the edit-scoped options endpoint no longer returns it', async () => {
-	useSelectedSite().setSelected({ id: 7, domain: 'view-only.example.com' })
+	useSelectedSite().setSelected({ id: 7, name: 'Только просмотр', domain: 'view-only.example.com' })
 	requestMock.mockResolvedValue({ items: [], pagination: { page: 1, per_page: 10, total: 0 } })
 	const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', component: { template: '<div />' } }] })
 	await router.push('/')

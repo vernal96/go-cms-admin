@@ -32,6 +32,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let sequence = 0
 
 const columns: AdminTableColumn[] = [
+  { prop: 'name', label: 'Название' },
   { prop: 'domain', label: 'Домен' },
   { prop: 'profile_code', label: 'Профиль' },
   { prop: 'locale', label: 'Локаль', width: 130 },
@@ -84,7 +85,7 @@ async function handleAction(key: string, row: Record<string, unknown>): Promise<
   if (key !== 'delete') return
 	if (!site.capabilities?.delete) return
   try {
-    await ElMessageBox.confirm(`Удалить сайт ${site.domain} и все его ресурсы?`, 'Удаление сайта', {
+    await ElMessageBox.confirm(`Удалить сайт ${site.name} и все его ресурсы?`, 'Удаление сайта', {
       confirmButtonText: 'Удалить', cancelButtonText: 'Отмена', type: 'warning',
     })
   } catch {
@@ -120,7 +121,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="workspace-page">
     <header class="page-header">
-      <div><h1>Сайты</h1><p>Домены и профили проекта</p></div>
+      <div><h1>Сайты</h1><p>Названия, домены и профили проекта</p></div>
     </header>
     <admin-data-table
       :columns="columns"
