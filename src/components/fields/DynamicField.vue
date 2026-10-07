@@ -17,6 +17,7 @@ import RepeaterField from './RepeaterField.vue'
 import { fieldEditorError, isMultipleField, validatorNumber, type DynamicFieldErrors } from './model'
 import MultipleField from './MultipleField.vue'
 import ResourcePickerField from './ResourcePickerField.vue'
+import LibrarySourcePickerField from './LibrarySourcePickerField.vue'
 import RichTextEditor from '../RichTextEditor.vue'
 
 const props = defineProps<{
@@ -43,6 +44,7 @@ const resourceIDs = computed<number[]>(() => Array.isArray(model.value) ? model.
 	<component v-else-if="customEditor" :is="customEditor" v-model="model" :field="field" :site-id="siteId" :access-token="token" :resource-templates="resourceTemplates" />
 	<rich-text-editor v-else-if="field.editor === 'html'" :model-value="typeof model === 'string' ? model : ''" @update:model-value="model = $event" />
 	<select-field v-else-if="field.editor === 'resource-template'" v-model="model" :choices="(resourceTemplates ?? []).map((item) => ({ value: item.code, label: item.label }))" :multiple="false" />
+	<library-source-picker-field v-else-if="field.editor === 'library-source-picker'" :model-value="typeof model === 'number' ? model : undefined" :site-id="siteId" :access-token="token" @update:model-value="model = $event" />
 	<resource-picker-field v-else-if="field.editor === 'resource-picker'" :model-value="typeof model === 'number' ? model : undefined" :site-id="siteId ?? 0" :access-token="accessToken ?? ''" @update:model-value="model = $event" />
 	<resource-picker-field v-else-if="field.editor === 'resource-multi-picker'" :model-value="resourceIDs" :site-id="siteId ?? 0" :access-token="accessToken ?? ''" multiple @update:model-value="model = $event" />
 	<repeater-field v-else-if="control === 'repeater'" v-model="model" :field="field" :site-id="siteId" :access-token="token" :resource-templates="resourceTemplates" :errors="errors" :field-path="fieldPath" />

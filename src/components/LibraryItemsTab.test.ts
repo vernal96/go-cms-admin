@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { flushPromises, shallowMount } from '@vue/test-utils'
+import { flushPromises, mount, shallowMount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { adminRequest } from '../api/admin-api'
@@ -58,4 +58,19 @@ describe('LibraryItemsTab', () => {
       'token',
     )
   })
+})
+
+it('shows mirror resources read-only and paginates through the mirror API', async () => {
+  const request = vi.mocked(adminRequest)
+  request.mockResolvedValue({ items: [{ id: 10, title: 'Resource', slug: 'resource', is_public: true, effective_url: '/mirror/resource' }], next_cursor: 'opaque-next' } as never)
+  const wrapper = mount(LibraryItemsTab, { props: { siteId: 7, libraryId: 20, accessToken: 'token', readonly: true }, global: { directives: { loading: () => {} } } })
+  await flushPromises()
+  expect(wrapper.text()).toContain('только для чтения')
+  expect(wrapper.text()).toContain('/mirror/resource')
+  expect(wrapper.text()).not.toContain('Добавить ресурс')
+  expect(wrapper.text()).not.toContain('Редактировать')
+  await wrapper.findAll('button').find(button => button.text() === 'Далее')!.trigger('click')
+  await flushPromises()
+  expect(request).toHaveBeenLastCalledWith('/api/sites/7/resources/20/items?limit=25&cursor=opaque-next', 'token')
+  wrapper.unmount()
 })

@@ -260,6 +260,7 @@ export interface ResourceTypeCapabilities {
   supports_target_resource?: boolean
   mutable_type?: boolean
   owns_library_items?: boolean
+  mirrors_library_items?: boolean
   default_icon?: string
 }
 export interface ResourceContentTypeOption {

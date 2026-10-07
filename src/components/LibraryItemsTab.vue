@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { ElButton, ElInput, ElMessage, ElTable, ElTableColumn } from 'element-plus'
+import { ElAlert, ElButton, ElInput, ElMessage, ElTable, ElTableColumn } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import type { LibraryItemsResponse } from '../types/admin'
 
-const props = defineProps<{ accessToken: string; siteId: number; libraryId: number }>()
+const props = defineProps<{ accessToken: string; siteId: number; libraryId: number; readonly?: boolean }>()
 const router = useRouter()
 const loading = ref(false)
 const search = ref('')
@@ -44,8 +44,9 @@ watch(() => [props.siteId, props.libraryId], () => void load(true))
 
 <template>
   <div class="library-items-tab">
+    <el-alert v-if="readonly" title="Ресурсы библиотеки-источника доступны только для чтения. Изменения выполняются на сайте-источнике." type="info" :closable="false" />
     <div class="library-items-toolbar">
-      <el-button type="primary" @click="add">Добавить ресурс</el-button>
+      <el-button v-if="!readonly" type="primary" @click="add">Добавить ресурс</el-button>
       <el-input v-model="search" clearable placeholder="Поиск по названию или коду" @keyup.enter="load(true)" @clear="load(true)" />
       <el-button @click="load(true)">Найти</el-button>
     </div>
@@ -56,9 +57,10 @@ watch(() => [props.siteId, props.libraryId], () => void load(true))
       <el-table-column label="Активность" width="130">
         <template #default="scope">{{ scope.row.deleted ? 'Удалён' : (scope.row.is_public ? 'Активен' : 'Скрыт') }}</template>
       </el-table-column>
-      <el-table-column label="Редактировать" width="150">
+      <el-table-column v-if="!readonly" label="Редактировать" width="150">
         <template #default="scope"><el-button link type="primary" @click="edit(scope.row.id)">Открыть</el-button></template>
       </el-table-column>
+      <el-table-column v-if="readonly" prop="effective_url" label="Адрес ресурса" min-width="240" />
     </el-table>
     <div class="library-items-pagination">
       <el-button :disabled="!history.length || loading" @click="previous">Назад</el-button>

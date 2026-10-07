@@ -134,6 +134,7 @@ const supportsContent = computed(() => capability('supports_content'))
 const supportsExternalURL = computed(() => capability('supports_external_url'))
 const supportsTargetResource = computed(() => capability('supports_target_resource'))
 const ownsLibraryItems = computed(() => capability('owns_library_items'))
+const mirrorsLibraryItems = computed(() => capability('mirrors_library_items'))
 const mutableType = computed(() => capability('mutable_type'))
 const applicableExtensions = computed(() =>
   metadata.value.extensions.filter((extension) => extension.applies_to.includes(form.type)),
@@ -590,8 +591,8 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
           </div>
         </el-tab-pane>
 
-		<el-tab-pane v-if="ownsLibraryItems" label="Ресурсы" name="library-items">
-          <library-items-tab :access-token="accessToken" :site-id="siteId" :library-id="resourceId" />
+		<el-tab-pane v-if="ownsLibraryItems || mirrorsLibraryItems" label="Ресурсы" name="library-items">
+          <library-items-tab :access-token="accessToken" :site-id="siteId" :library-id="resourceId" :readonly="mirrorsLibraryItems" />
 		</el-tab-pane>
 
 		<el-tab-pane v-if="canReadHistory" label="История" name="history">
