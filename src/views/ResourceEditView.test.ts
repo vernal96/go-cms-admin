@@ -117,6 +117,7 @@ describe('ResourceEditView schema transitions', () => {
       global: { renderStubDefaultSlot: true },
     })
     await flushPromises()
+    expect(wrapper.findAllComponents({ name: 'ResourceIcon' }).map(icon => icon.props('icon'))).toEqual(['document', 'document'])
     const errors = [{ key: 'page_title', code: 'regex' }]
     requestMock.mockRejectedValueOnce(new AdminAPIError(422, 'validation_failed', 'request data is invalid', errors))
     const form = wrapper.getComponent({ name: 'ElForm' })

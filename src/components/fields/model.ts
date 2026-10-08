@@ -39,7 +39,7 @@ export interface FieldEditorResolver {
   fieldEditor(code: string): Component | undefined
 }
 
-const standardEditors = new Set([...supportedTypes, 'html', 'resource-template', 'resource-picker', 'resource-multi-picker', 'library-source-picker'])
+const standardEditors = new Set([...supportedTypes, 'html', 'resource-template', 'resource-picker', 'resource-multi-picker', 'library-source-picker', 'resource-type-picker', 'resource-field-picker', 'filter-builder', 'sort-builder'])
 
 export function fieldEditorError(field: FieldDefinition, resolver?: FieldEditorResolver): string | undefined {
   const code = field.editor || field.type

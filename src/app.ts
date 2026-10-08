@@ -2,6 +2,8 @@ import { createApp, type App as VueApp, type Component, type ComponentPublicInst
 import { ElLoading } from 'element-plus'
 import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
+import '@fortawesome/fontawesome-free/css/fontawesome.css'
+import '@fortawesome/fontawesome-free/css/solid.css'
 
 import { projectName } from './project'
 import { adminPlugins } from './admin-plugins'

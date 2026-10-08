@@ -12,14 +12,19 @@ export interface ValidationField {
 export function useServerValidation() {
   // Keep the original API entries for future field highlighting.
   const errors = ref<FieldValidationError[] | null>(null)
-  function clear(): void { errors.value = null }
+  const message = ref<string | null>(null)
+  function clear(): void { errors.value = null; message.value = null }
   function capture(error: unknown): boolean {
     if (!(error instanceof AdminAPIError) || error.status !== 422 ||
         (error.code !== 'validation_failed' && !error.fieldErrors.length)) return false
     errors.value = error.fieldErrors
+    // API error messages are rendered as text, with control characters and
+    // excessive payloads removed before showing them in the form summary.
+    const safeMessage = error.message.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500)
+    message.value = safeMessage || null
     return true
   }
-  return { errors, clear, capture }
+  return { errors, message, clear, capture }
 }
 
 export function validationFieldLabel(key: string, fields: readonly ValidationField[]): string {

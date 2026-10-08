@@ -32,6 +32,7 @@ import MediaImageField from '../components/images/MediaImageField.vue'
 import RichTextEditor from '../components/RichTextEditor.vue'
 import ResourceExtensionEditor from '../components/resource-extensions/ResourceExtensionEditor.vue'
 import ResourceWidgetsEditor from '../components/resource-widgets/ResourceWidgetsEditor.vue'
+import ResourceIcon from '../components/ResourceIcon.vue'
 import LibraryItemsTab from '../components/LibraryItemsTab.vue'
 import ResourceHistoryTab from '../components/ResourceHistoryTab.vue'
 import {
@@ -72,7 +73,7 @@ const canDelete = ref(false)
 const canRestore = ref(false)
 const deleted = ref(false)
 const deletedAt = ref<string | null>(null)
-const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
+const { errors: serverFieldErrors, message: serverMessage, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const localFieldErrors = ref<DynamicFieldErrors>({})
 const localSettingsErrors = ref<DynamicFieldErrors>({})
 const resourceWidgets = ref<ResourceWidget[]>([])
@@ -476,7 +477,7 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
     <el-alert v-if="loadError" type="error" :closable="false" :title="loadError" show-icon />
     <el-skeleton v-else-if="loading" :rows="10" animated />
     <el-form v-else :model="form" label-position="top" class="resource-editor-form" :class="{ 'is-readonly': !canUpdate }">
-      <server-validation-errors :errors="serverFieldErrors" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? []), ...settingsFields, { key: 'type_settings', label: 'Настройки типа', options: { fields: settingsFields } }]" />
+      <server-validation-errors :errors="serverFieldErrors" :message="serverMessage" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? []), ...settingsFields, { key: 'type_settings', label: 'Настройки типа', options: { fields: settingsFields } }]" />
       <el-alert v-if="submitError" class="form-alert" type="error" :closable="false" :title="submitError" show-icon />
       <el-tabs v-model="activeTab" class="resource-tabs">
         <el-tab-pane label="Основное" name="main">
@@ -490,7 +491,9 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
               <el-form-item v-if="supportsTemplate" label="Шаблон">
                 <el-select :model-value="templateSelection" class="full-width" :disabled="!canUpdate" @change="changeTemplate">
                   <el-option label="(без шаблона)" :value="noTemplateValue" />
-                  <el-option v-for="item in metadata.templates" :key="item.code" :label="item.label" :value="item.code" />
+                  <el-option v-for="item in metadata.templates" :key="item.code" :label="item.label" :value="item.code">
+                    <span class="template-option"><resource-icon :icon="item.icon" />{{ item.label }}</span>
+                  </el-option>
                 </el-select>
               </el-form-item>
               <el-form-item label="Код">
@@ -619,3 +622,7 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
     </el-form>
   </section>
 </template>
+
+<style scoped>
+.template-option { display: inline-flex; align-items: center; gap: 8px; }
+</style>

@@ -18,7 +18,7 @@ const router = useRouter()
 const selected = useSelectedSite()
 const submitting = ref(false)
 const error = ref<string | null>(null)
-const { errors: fieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
+const { errors: fieldErrors, message: serverMessage, clear: clearValidation, capture: captureValidation } = useServerValidation()
 
 async function submit(payload: SiteFormPayload): Promise<void> {
   submitting.value = true
@@ -63,6 +63,7 @@ async function submit(payload: SiteFormPayload): Promise<void> {
       :submitting="submitting"
       :error="error"
       :field-errors="fieldErrors"
+      :server-message="serverMessage"
       @clear-validation="clearValidation(); error = null"
       @submit="submit"
       @cancel="router.push('/admin/sites')"

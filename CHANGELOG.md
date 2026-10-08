@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
+- Bundle the Font Awesome Free solid stylesheet and render backend icon class strings verbatim; use `fa-solid fa-file-lines` when no icon is supplied. Put `page` first and select it by default in resource creation.
+- Use the `Логин` and `Пароль` placeholders on the sign-in form.
+- Add semantic Resource List editors for resource types, fields, filters, and sorting; preserve backend-shaped values through save and reopen.
 - Show server field validation in a shared persistent summary across editors, with field labels, nested paths and readable builtin messages. Keep local field errors inline and retain structured server errors for future highlighting.
 
 - Validate membership per list element and discard removed configuration editor references so deleted validators and Mail variables no longer block saving.

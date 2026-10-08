@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
-import { ElButton, ElEmpty, ElIcon, ElInput, ElMessage, ElMessageBox, ElSkeleton, ElTree } from 'element-plus'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { ElButton, ElEmpty, ElInput, ElMessage, ElMessageBox, ElSkeleton, ElTree } from 'element-plus'
 import type Node from 'element-plus/es/components/tree/src/model/node'
 import type { LoadFunction } from 'element-plus/es/components/tree/src/tree.type'
-import { Collection, Document, Folder, Link, Plus, Tickets } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 import { adminRequest, adminRequestVoid } from '../api/admin-api'
@@ -12,6 +12,7 @@ import type { ResourceChildrenResponse, ResourceOption, ResourceOptionsResponse,
 import { resourceTreeNodeClasses } from './resource-tree-state'
 import ResourceCreateDialog from './ResourceCreateDialog.vue'
 import ResourceSiteTransferDialog from './ResourceSiteTransferDialog.vue'
+import ResourceIcon from './ResourceIcon.vue'
 
 const props = withDefaults(defineProps<{
   accessToken: string
@@ -74,14 +75,6 @@ function errorNode(parentId: number): TreeNodeData {
     can_transfer_site: false,
     isLeaf: true, loadError: true, retryParentId: parentId,
   }
-}
-
-function icon(name: string): Component {
-  if (name === 'link') return Link
-  if (name === 'folder') return Folder
-  if (name === 'tickets') return Tickets
-  if (name === 'collection') return Collection
-  return Document
 }
 
 function create(parent: ResourceTreeItem | null): void { dialogRef.value?.open(parent) }
@@ -393,7 +386,7 @@ watch(siteId, () => {
           <el-button size="small" text @click.stop="retryNode(data.retryParentId)">Повторить</el-button>
         </span>
         <span v-else class="resource-node" :class="resourceTreeNodeClasses(data)">
-          <el-icon class="resource-node-icon"><component :is="icon(data.icon)" /></el-icon>
+          <resource-icon :icon="data.icon" class="resource-node-icon" />
           <span class="resource-node-title">{{ data.display_title }} ({{ data.id }})</span>
           <el-button
             v-if="canCreate && data.can_create_child && !data.deleted"

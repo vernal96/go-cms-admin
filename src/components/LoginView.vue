@@ -96,7 +96,7 @@ async function submit(): Promise<void> {
             v-model="credentials.identifier"
             :prefix-icon="User"
             autocomplete="username"
-            placeholder="admin"
+            placeholder="Логин"
             size="large"
             :disabled="loading"
           />
@@ -107,7 +107,7 @@ async function submit(): Promise<void> {
             v-model="credentials.password"
             :prefix-icon="Lock"
             autocomplete="current-password"
-            placeholder="Введите пароль"
+            placeholder="Пароль"
             type="password"
             show-password
             size="large"

@@ -63,4 +63,18 @@ describe('multiple standard fields', () => {
     expect(validateFieldValues([definition], { items: ['a', 'a'] })).toHaveProperty('items[1]')
     wrapper.unmount()
   })
+
+  it('uses the image editor for each item in a multiple Media field', () => {
+    const definition: FieldDefinition = {
+      key: 'gallery', type: 'media', label: 'Галерея', required: false, validators: [], options: { multiple: true },
+    }
+    const wrapper = mount(DynamicField, { props: { field: definition, modelValue: [11, 12], siteId: 7, accessToken: 'token' } })
+    const fields = wrapper.findAllComponents({ name: 'MediaImageField' })
+    expect(fields).toHaveLength(2)
+    expect(fields.map(field => field.props())).toEqual([
+      expect.objectContaining({ modelValue: 11, siteId: 7, accessToken: 'token' }),
+      expect.objectContaining({ modelValue: 12, siteId: 7, accessToken: 'token' }),
+    ])
+    wrapper.unmount()
+  })
 })

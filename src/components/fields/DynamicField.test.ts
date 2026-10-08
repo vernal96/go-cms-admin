@@ -59,7 +59,7 @@ describe('DynamicField', () => {
     },
   )
 
-  it('renders an explicit error instead of a fallback input', () => {
+	it('renders an explicit error instead of a fallback input', () => {
     const wrapper = shallowMount(DynamicField, {
 		props: { field: definition('future'), siteId: 0, accessToken: '', resourceTemplates: [] },
     })
@@ -77,5 +77,25 @@ describe('DynamicField', () => {
 		const select = wrapper.findComponent({ name: 'SelectField' })
 		expect(select.exists()).toBe(true)
 		expect(select.props('choices')).toEqual([{ value: 'article', label: 'Article' }])
+	})
+
+	it('passes the site and credentials to the resource picker editor', () => {
+		const wrapper = shallowMount(DynamicField, {
+			props: { field: { ...definition('string'), editor: 'resource-picker' }, siteId: 7, accessToken: 'token' },
+		})
+		expect(wrapper.findComponent({ name: 'ResourcePickerField' }).props()).toMatchObject({ siteId: 7, accessToken: 'token' })
+	})
+
+	it.each([
+		['resource-type-picker', 'ResourceTypePickerField'],
+		['resource-field-picker', 'ResourceFieldPickerField'],
+		['filter-builder', 'FilterBuilderField'],
+		['sort-builder', 'SortBuilderField'],
+	])('renders the %s semantic editor and forwards its field choices', (editor, component) => {
+		const field = { ...definition('select'), editor, options: { ...definition('select').options, choices: [{ value: 'resource.title', label: 'Заголовок' }], multiple: true } }
+		const wrapper = shallowMount(DynamicField, { props: { field, modelValue: [] } })
+		expect(wrapper.findComponent({ name: component }).exists()).toBe(true)
+		expect(wrapper.findComponent({ name: component }).props('field')).toEqual(field)
+		expect(wrapper.findComponent({ name: 'ElAlert' }).exists()).toBe(false)
 	})
 })

@@ -19,6 +19,10 @@ import MultipleField from './MultipleField.vue'
 import ResourcePickerField from './ResourcePickerField.vue'
 import LibrarySourcePickerField from './LibrarySourcePickerField.vue'
 import RichTextEditor from '../RichTextEditor.vue'
+import ResourceTypePickerField from './ResourceTypePickerField.vue'
+import ResourceFieldPickerField from './ResourceFieldPickerField.vue'
+import FilterBuilderField from './FilterBuilderField.vue'
+import SortBuilderField from './SortBuilderField.vue'
 
 const props = defineProps<{
 	field: FieldDefinition
@@ -40,6 +44,10 @@ const resourceIDs = computed<number[]>(() => Array.isArray(model.value) ? model.
 
 <template>
 	<el-alert v-if="unavailable" type="error" :closable="false" :title="unavailable" />
+	<resource-type-picker-field v-else-if="field.editor === 'resource-type-picker'" v-model="model" :field="field" />
+	<resource-field-picker-field v-else-if="field.editor === 'resource-field-picker'" v-model="model" :field="field" />
+	<filter-builder-field v-else-if="field.editor === 'filter-builder'" v-model="model" :field="field" />
+	<sort-builder-field v-else-if="field.editor === 'sort-builder'" v-model="model" :field="field" />
 	<multiple-field v-else-if="isMultipleField(field) && control !== 'select'" v-model="model" :field="field" :errors="errors" :field-path="fieldPath" :site-id="siteId" :access-token="token" :resource-templates="resourceTemplates" />
 	<component v-else-if="customEditor" :is="customEditor" v-model="model" :field="field" :site-id="siteId" :access-token="token" :resource-templates="resourceTemplates" />
 	<rich-text-editor v-else-if="field.editor === 'html'" :model-value="typeof model === 'string' ? model : ''" @update:model-value="model = $event" />

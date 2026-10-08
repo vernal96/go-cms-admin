@@ -19,6 +19,7 @@ import DynamicFieldsForm from './fields/DynamicFieldsForm.vue'
 import TabbedDynamicFieldsForm from './fields/TabbedDynamicFieldsForm.vue'
 import {
   createFieldValues,
+  fieldErrorMessage,
   type DynamicFieldErrors,
 } from './fields/model'
 import type {
@@ -37,6 +38,7 @@ const props = defineProps<{
   submitting?: boolean
   error?: string | null
   fieldErrors?: FieldValidationError[] | null
+  serverMessage?: string | null
 }>()
 const emit = defineEmits<{
   submit: [payload: SiteFormPayload]
@@ -62,6 +64,14 @@ const selectedProfile = computed(
     profiles.value.find((profile) => profile.code === form.profile_code) ??
     null,
 )
+
+const displayedFieldErrors = computed<DynamicFieldErrors>(() => {
+  const errors: DynamicFieldErrors = {}
+  for (const error of props.fieldErrors ?? []) {
+    errors[error.key] = fieldErrorMessage(error.code, error.params)
+  }
+  return { ...errors, ...localFieldErrors.value }
+})
 
 watch(
   () => props.initial,
@@ -119,7 +129,16 @@ function submit(): void {
       'Форма содержит неизвестные типы полей и не может быть отправлена.'
     return
   }
-  localFieldErrors.value = validateFieldValues(fields, form.settings)
+  const settings = props.editing
+    ? { ...form.settings }
+    : Object.fromEntries(Object.entries(form.settings).filter(([, value]) =>
+      value !== null && value !== undefined && value !== '' &&
+      !(Array.isArray(value) && value.length === 0)))
+  // Validate every required field on create, including required values omitted
+  // from the payload. Keep omitted optional values out of validation so empty
+  // optional lists and blanks can still be omitted from site settings.
+  const validatedFields = props.editing ? fields : fields.filter(field => field.required || Object.hasOwn(settings, field.key))
+  localFieldErrors.value = validateFieldValues(validatedFields, settings)
   if (Object.keys(localFieldErrors.value).length > 0) return
   emit('submit', {
     name: form.name.trim(),
@@ -127,7 +146,7 @@ function submit(): void {
     profile_code: form.profile_code,
     locale: form.locale.trim(),
     is_public: form.is_public,
-    settings: { ...form.settings },
+    settings,
   })
 }
 </script>
@@ -148,7 +167,7 @@ function submit(): void {
       :closable="false"
       :title="error || localError || ''"
     />
-    <server-validation-errors :errors="fieldErrors" :fields="[{ key: 'name', label: 'Название' }, { key: 'domain', label: 'Домен' }, { key: 'profile_code', label: 'Профиль' }, { key: 'locale', label: 'Локаль' }, ...(selectedProfile?.fields ?? [])]" />
+    <server-validation-errors :errors="fieldErrors" :message="serverMessage" :fields="[{ key: 'name', label: 'Название' }, { key: 'domain', label: 'Домен' }, { key: 'profile_code', label: 'Профиль' }, { key: 'locale', label: 'Локаль' }, ...(selectedProfile?.fields ?? [])]" />
     <el-form-item label="Название" required>
       <el-input v-model="form.name" placeholder="Название сайта" />
     </el-form-item>
@@ -177,7 +196,7 @@ function submit(): void {
       :access-token="accessToken"
       :editor-tabs="selectedProfile.editor_tabs"
       :model-value="form.settings"
-      :errors="localFieldErrors"
+      :errors="displayedFieldErrors"
       @update:model-value="form.settings = $event"
     />
     <dynamic-fields-form
@@ -185,7 +204,7 @@ function submit(): void {
       :fields="selectedProfile.fields"
       :access-token="accessToken"
       :model-value="form.settings"
-      :errors="localFieldErrors"
+      :errors="displayedFieldErrors"
       @update:model-value="form.settings = $event"
     />
     <div class="form-actions">

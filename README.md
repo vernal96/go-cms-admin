@@ -67,6 +67,18 @@ or `createAdminApp` (see [SDK.md](SDK.md)).
 The backend contributes semantic route/navigation data and never receives Vue
 component names or executable JavaScript.
 
+## Icons and resource creation
+
+The admin bundles Font Awesome Free's solid icon stylesheet. Resource and
+template metadata may provide an icon as a CSS class string, for example
+`fa-solid fa-house`; the UI applies a nonempty value verbatim and does not
+validate it. An empty or missing value displays `fa-solid fa-file-lines`.
+Projects can supply other icon classes if their host loads the matching CSS.
+
+The sign-in form labels its fields with the placeholders `Логин` and `Пароль`.
+In resource creation, the standard `page` type is listed first and selected by
+default when it is available; the remaining types retain backend order.
+
 ## Checks
 
 ```sh

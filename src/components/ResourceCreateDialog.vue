@@ -25,7 +25,9 @@ import type {
   ResourceTypeCapabilities,
   ResourceTypeCode,
 } from '../types/admin'
+import ResourceIcon from './ResourceIcon.vue'
 import DynamicFieldsForm from './fields/DynamicFieldsForm.vue'
+import TabbedDynamicFieldsForm from './fields/TabbedDynamicFieldsForm.vue'
 import {
   createFieldValues,
   type DynamicFieldErrors,
@@ -43,7 +45,7 @@ const visible = ref(false)
 const loading = ref(false)
 const metadataLoading = ref(false)
 const errorMessage = ref<string | null>(null)
-const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
+const { errors: serverFieldErrors, message: serverMessage, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const localFieldErrors = ref<DynamicFieldErrors>({})
 const localSettingsErrors = ref<DynamicFieldErrors>({})
 const metadata = ref<ResourceMetadata>({ types: [], templates: [], widgets: [], extensions: [] })
@@ -68,6 +70,10 @@ const selectedTemplate = computed(
     metadata.value.templates.find((item) => item.code === form.template_code) ??
     null,
 )
+const orderedTypes = computed(() => {
+  const page = metadata.value.types.find(item => item.code === 'page')
+  return page ? [page, ...metadata.value.types.filter(item => item.code !== 'page')] : metadata.value.types
+})
 const templateSelection = computed(() => form.template_code ?? noTemplateValue)
 const selectedType = computed(() => metadata.value.types.find((item) => item.code === form.type) ?? null)
 const settingsFields = computed(() => selectedType.value?.settings_fields ?? [])
@@ -116,7 +122,7 @@ async function open(parentItem: ResourceTreeItem | null): Promise<void> {
     ])
     metadata.value = loadedMetadata
     options.value = loadedOptions.items
-    form.type = metadata.value.types[0]?.code ?? 'link'
+    form.type = orderedTypes.value[0]?.code ?? 'link'
     form.template_code = null
     form.fields = createFieldValues(selectedTemplate.value?.fields ?? [])
 		form.type_settings = createFieldValues(settingsFields.value, selectedType.value?.settings_defaults ?? {})
@@ -232,7 +238,7 @@ defineExpose({ open })
 
 <template>
   <el-dialog v-model="visible" :title="title" width="520px" destroy-on-close>
-    <server-validation-errors :errors="serverFieldErrors" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? []), ...settingsFields, { key: 'type_settings', label: 'Настройки типа', options: { fields: settingsFields } }]" />
+    <server-validation-errors :errors="serverFieldErrors" :message="serverMessage" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? []), ...settingsFields, { key: 'type_settings', label: 'Настройки типа', options: { fields: settingsFields } }]" />
     <el-alert
       v-if="errorMessage"
       class="dialog-alert"
@@ -244,7 +250,7 @@ defineExpose({ open })
       <el-form-item label="Тип" required>
         <el-select v-model="form.type" class="full-width">
           <el-option
-            v-for="item in metadata.types"
+            v-for="item in orderedTypes"
             :key="item.code"
             :label="item.label"
             :value="item.code"
@@ -259,7 +265,9 @@ defineExpose({ open })
             :key="item.code"
             :label="item.label"
             :value="item.code"
-          />
+          >
+            <span class="template-option"><resource-icon :icon="item.icon" />{{ item.label }}</span>
+          </el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="Название" required
@@ -302,13 +310,29 @@ defineExpose({ open })
 			:access-token="accessToken"
 			:resource-templates="metadata.templates"
 		/>
-      <dynamic-fields-form
-		v-if="supportsFields && selectedTemplate"
-        :fields="selectedTemplate.fields"
-        :model-value="form.fields"
-        :errors="localFieldErrors"
-        @update:model-value="form.fields = $event"
-      />
+      <template v-if="supportsFields && selectedTemplate">
+        <tabbed-dynamic-fields-form
+          v-if="selectedTemplate.editor_tabs?.length"
+          :fields="selectedTemplate.fields"
+          :editor-tabs="selectedTemplate.editor_tabs"
+          :model-value="form.fields"
+          :errors="localFieldErrors"
+          :site-id="siteId"
+          :access-token="accessToken"
+          :resource-templates="metadata.templates"
+          @update:model-value="form.fields = $event"
+        />
+        <dynamic-fields-form
+          v-else
+          :fields="selectedTemplate.fields"
+          :model-value="form.fields"
+          :errors="localFieldErrors"
+          :site-id="siteId"
+          :access-token="accessToken"
+          :resource-templates="metadata.templates"
+          @update:model-value="form.fields = $event"
+        />
+      </template>
     </el-form>
     <template #footer>
       <el-button @click="visible = false">Отмена</el-button>
@@ -322,3 +346,7 @@ defineExpose({ open })
     </template>
   </el-dialog>
 </template>
+
+<style scoped>
+.template-option { display: inline-flex; align-items: center; gap: 8px; }
+</style>

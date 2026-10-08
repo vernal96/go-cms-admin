@@ -30,17 +30,17 @@ describe('server validation summary', () => {
     const original = [{ key: 'contacts[0].name', code: 'required' }, { key: '<script>', code: 'custom' }]
     expect(state.capture(new AdminAPIError(422, 'validation_failed', 'Internal validation error', original))).toBe(true)
     expect(state.errors.value).toEqual(original)
-    const wrapper = mount(ServerValidationErrors, { props: { errors: state.errors.value, fields } })
+    const wrapper = mount(ServerValidationErrors, { props: { errors: state.errors.value, message: state.message.value, fields } })
     expect(wrapper.findAll('li')).toHaveLength(2)
     expect(wrapper.text()).toContain('Имя: Поле обязательно.')
-    expect(wrapper.text()).not.toContain('Internal validation error')
+    expect(wrapper.text()).toContain('Internal validation error')
     expect(wrapper.find('script').exists()).toBe(false)
     state.clear()
     await wrapper.setProps({ errors: state.errors.value })
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     state.capture(new AdminAPIError(422, 'validation_failed', 'Forms validation failed'))
-    await wrapper.setProps({ errors: state.errors.value })
-    expect(wrapper.text()).toContain('Исправьте данные и повторите попытку.')
+    await wrapper.setProps({ errors: state.errors.value, message: state.message.value })
+    expect(wrapper.text()).toContain('Forms validation failed')
     wrapper.unmount()
   })
 
@@ -55,6 +55,18 @@ describe('server validation summary', () => {
     expect(state.capture(new Error('offline'))).toBe(false)
     expect(state.capture(new AdminAPIError(422, 'another_error', 'failure'))).toBe(false)
     expect(state.errors.value).toBeNull()
+  })
+
+  it('keeps a bounded, plain-text server message with structured field errors', () => {
+    const state = useServerValidation()
+    const detail = `Неподдерживаемый MIME\n${'<x>'.repeat(300)}`
+    expect(state.capture(new AdminAPIError(422, 'validation_failed', detail, [{ key: 'logo', code: 'custom.mime' }]))).toBe(true)
+    expect(state.errors.value).toEqual([{ key: 'logo', code: 'custom.mime' }])
+    expect(state.message.value).toHaveLength(500)
+    const wrapper = mount(ServerValidationErrors, { props: { errors: state.errors.value, message: state.message.value, fields } })
+    expect(wrapper.text()).toContain('Неподдерживаемый MIME')
+    expect(wrapper.find('x').exists()).toBe(false)
+    expect(wrapper.findAll('li')).toHaveLength(1)
   })
 
   it.each([
