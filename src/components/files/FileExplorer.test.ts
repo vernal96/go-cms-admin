@@ -242,10 +242,12 @@ describe('FileExplorer', () => {
     await tiles[1]!.trigger('click')
     await tiles[2]!.trigger('click', { ctrlKey: true })
     const transfer = dragTransfer()
+    const setData = vi.spyOn(transfer, 'setData')
     await wrapper.findAll('.file-drag-handle')[1]!.trigger('dragstart', { dataTransfer: transfer })
 
+    expect(setData).toHaveBeenCalledTimes(1)
     expect(wrapper.findAll('.file-tile.is-drag-source')).toHaveLength(2)
-    expect(wrapper.find('.file-tile').attributes('draggable')).toBeUndefined()
+    expect(wrapper.find('.file-tile').attributes('draggable')).toBe('true')
     expect(wrapper.find('.file-drag-handle').attributes('draggable')).toBe('true')
 
     await tiles[0]!.trigger('dragenter', { dataTransfer: transfer })
@@ -261,6 +263,75 @@ describe('FileExplorer', () => {
     })
     expect(wrapper.findAll('.file-tile.is-drag-source')).toHaveLength(0)
     expect(wrapper.findAll('.file-tile.is-drop-target')).toHaveLength(0)
+  })
+
+  it('moves an image dragged from its thumbnail instead of uploading it again', async () => {
+    const image = {
+      ...listing.items[1],
+      name: 'photo.png',
+      mime_type: 'image/png',
+    }
+    const fetchMock = vi.fn(async (url: string, _options?: RequestInit) => {
+      if (url === '/api/files/disks') {
+        return json({ items: [{ code: 'public', visibility: 'public' }], permissions: listing.permissions })
+      }
+      if (url.startsWith('/api/files/items')) return json({ ...listing, items: [listing.items[0], image] })
+      if (url.startsWith('/api/files/2/thumbnail?')) return new Response('thumbnail')
+      if (url === '/api/files/move') return new Response(null, { status: 204 })
+      if (url === '/api/files/uploads') return json({ ...image, id: 4 })
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:thumbnail'), revokeObjectURL: vi.fn() })
+    const wrapper = mountExplorer(fetchMock)
+    await flushPromises()
+
+    const transfer = dragTransfer(['Files'], [new File(['image'], 'photo.png', { type: 'image/png' })])
+    const imageElement = wrapper.find('.file-tile-thumbnail')
+    expect(imageElement.exists()).toBe(true)
+    await imageElement.trigger('dragstart', { dataTransfer: transfer })
+
+    expect(transfer.types).toContain('application/x-go-cms-files')
+    const folder = wrapper.findAll('.file-tile')[0]!
+    await folder.trigger('dragenter', { dataTransfer: transfer })
+    await folder.trigger('drop', { dataTransfer: transfer })
+    await flushPromises()
+
+    const moveCall = fetchMock.mock.calls.find(([url]) => url === '/api/files/move')
+    expect(JSON.parse(String(moveCall?.[1]?.body))).toEqual({
+      disk: 'public', folder_id: 1,
+      items: [{ kind: 'file', id: 2 }],
+    })
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/files/uploads')).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('starts an internal move by dragging a non-image file tile', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(json({ items: [{ code: 'public', visibility: 'public' }], permissions: listing.permissions }))
+      .mockResolvedValueOnce(json(listing))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(json(listing))
+    const wrapper = mountExplorer(fetchMock)
+    await flushPromises()
+
+    const transfer = dragTransfer()
+    const fileTile = wrapper.findAll('.file-tile')[1]!
+    await fileTile.trigger('dragstart', { dataTransfer: transfer })
+    expect(fileTile.attributes('draggable')).toBe('true')
+    expect(transfer.types).toContain('application/x-go-cms-files')
+
+    const folder = wrapper.findAll('.file-tile')[0]!
+    await folder.trigger('dragenter', { dataTransfer: transfer })
+    await folder.trigger('drop', { dataTransfer: transfer })
+    await flushPromises()
+    const moveCall = fetchMock.mock.calls.find(([url]) => url === '/api/files/move')
+    expect(JSON.parse(String(moveCall?.[1]?.body))).toEqual({
+      disk: 'public', folder_id: 1,
+      items: [{ kind: 'file', id: 2 }],
+    })
+    expect(fetchMock.mock.calls.some(([url]) => url === '/api/files/uploads')).toBe(false)
+    wrapper.unmount()
   })
 
   it('rejects a folder as its own destination and clears drag state on dragend', async () => {
@@ -308,17 +379,23 @@ describe('FileExplorer', () => {
   })
 
   it('does not expose drag handles without update permission', async () => {
+    const image = { ...listing.items[1], name: 'photo.png', mime_type: 'image/png' }
     const denied = {
       ...listing,
       permissions: { ...listing.permissions, update: false },
+      items: [listing.items[0], image],
     }
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(json({ items: [{ code: 'public', visibility: 'public' }], permissions: denied.permissions }))
       .mockResolvedValueOnce(json(denied))
+      .mockResolvedValue(json(denied))
+    vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:thumbnail'), revokeObjectURL: vi.fn() })
     const wrapper = mountExplorer(fetchMock)
     await flushPromises()
 
     expect(wrapper.find('.file-drag-handle').exists()).toBe(false)
+    expect(wrapper.find('.file-tile').attributes('draggable')).toBe('false')
+    expect(wrapper.find('.file-tile-thumbnail').attributes('draggable')).toBe('false')
   })
 })
 

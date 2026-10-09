@@ -629,6 +629,7 @@ async function readEntries(entry: FileSystemDirectoryEntry): Promise<FileSystemE
       <button
         v-for="(item, index) in sortedItems" :key="itemKey(item)" type="button"
         class="file-tile"
+        :draggable="permissions.update"
         :class="{
           'is-selected': selected.has(itemKey(item)),
           'is-disabled': picker && item.kind === 'file' && !matchesPicker(item),
@@ -638,6 +639,8 @@ async function readEntries(entry: FileSystemDirectoryEntry): Promise<FileSystemE
         @click="choose(item, $event, index)"
         @dblclick="activate(item)"
         @contextmenu="showContext($event, item)"
+        @dragstart="startInternalDrag($event, item, index)"
+        @dragend="finishDrag"
         @dragenter.stop="activateDropTarget($event, item.kind === 'folder' ? 'folder' : 'current', item.kind === 'folder' ? item.id : (listing?.folder?.id ?? null))"
         @dragover.stop="activateDropTarget($event, item.kind === 'folder' ? 'folder' : 'current', item.kind === 'folder' ? item.id : (listing?.folder?.id ?? null))"
         @dragleave.stop="leaveDropTarget($event, item.kind === 'folder' ? 'folder' : 'current', item.kind === 'folder' ? item.id : (listing?.folder?.id ?? null))"
@@ -657,6 +660,7 @@ async function readEntries(entry: FileSystemDirectoryEntry): Promise<FileSystemE
           :src="thumbnailURLs[itemKey(item)]"
           :alt="item.name"
           class="file-tile-thumbnail"
+          :draggable="permissions.update"
         />
         <component v-else :is="fileIcon(item)" class="file-tile-icon" />
         <span class="file-tile-name" :title="item.name">{{ item.name }}</span>
