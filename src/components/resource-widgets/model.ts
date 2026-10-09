@@ -12,6 +12,7 @@ export interface WidgetSettingsValue {
 
 export const defaultArea: WidgetAreaDescriptor = {
   code: 'default', label: 'Страница сайта', admin_span: 24, supports_resource_widgets: true,
+  items: [{ kind: 'resource_widgets' }],
 }
 
 export function effectiveArea(area: WidgetArea, areas: WidgetAreaDescriptor[]): WidgetArea {

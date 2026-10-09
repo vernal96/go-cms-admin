@@ -79,8 +79,12 @@ can be supplied with `history` (for example `createMemoryHistory()` in tests).
 ## Widget areas
 
 The SDK exports `WidgetArea` (a dynamic string code), `WidgetAreaDescriptor`,
-`ResourceTemplate` and `ResourceWidget`. Template `widget_areas` is an ordered
-array of `{ code, label, admin_span, supports_resource_widgets }` descriptors.
+`TemplateWidgetAreaItem`, `ResourceTemplate` and `ResourceWidget`. Template
+`widget_areas` is an ordered array of `{ code, label, admin_span,
+supports_resource_widgets, items }` descriptors. `items` is the compiled order
+of `{ kind: 'widget', code }` static template widgets and the
+`{ kind: 'resource_widgets' }` editable resource-widget slot. Static template
+widgets display their definition label and description without edit actions.
 The editor uses Element Plus 24-column layout, with full-width columns below
 992px. Area widths do not change individual widget presentation columns.
 

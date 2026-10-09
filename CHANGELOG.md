@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- Show template-preset widgets in each resource widget area at their declared positions. Read-only cards display the widget name and description with subdued styling, while resource widgets keep their editing and drag-and-drop controls.
+- Consume the ordered `widget_areas[].items` metadata from the matching kernel release.
+
 ## 0.3.0
 
 - Bundle the Font Awesome Free solid stylesheet and render backend icon class strings verbatim; use `fa-solid fa-file-lines` when no icon is supplied. Put `page` first and select it by default in resource creation.

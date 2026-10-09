@@ -43,7 +43,7 @@ it('preserves every unrelated area, including recovered bindings, during a move'
 })
 
 it('shows default only when needed and recovers original zones on their return', () => {
-  const areas = [{ code: 'main', label: 'Main', admin_span: 16, supports_resource_widgets: true }]
+  const areas = [{ code: 'main', label: 'Main', admin_span: 16, supports_resource_widgets: true, items: [{ kind: 'resource_widgets' as const }] }]
   const orphan = { ...widget(1, 'body', 0), area: 'removed', enabled: false }
   expect(visibleAreas([], []).map((area) => area.code)).toEqual(['default'])
   expect(visibleAreas(areas, []).map((area) => area.code)).toEqual(['main'])

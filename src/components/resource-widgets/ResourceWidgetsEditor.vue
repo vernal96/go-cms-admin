@@ -55,6 +55,47 @@ function widgetsIn(area: WidgetArea): ResourceWidget[] {
     .filter((widget) => effectiveArea(widget.area, props.template.widget_areas) === area)
 }
 
+type AreaItem =
+  | { kind: 'static'; key: string; definition: WidgetDefinition }
+  | { kind: 'resource'; widget: ResourceWidget; index: number }
+  | { kind: 'drop'; index: number }
+  | { kind: 'empty'; showMessage: boolean }
+  | { kind: 'static-empty' }
+
+function areaItems(area: WidgetArea): AreaItem[] {
+  const descriptor = areas.value.find((item) => item.code === area)
+  if (!descriptor) return []
+
+  const dynamicWidgets = widgetsIn(area)
+  const staticItems = descriptor.items.filter((item) => item.kind === 'widget')
+  const items: AreaItem[] = []
+  let staticIndex = 0
+
+  const addResourceWidgets = () => {
+    if (!dynamicWidgets.length) {
+      items.push({ kind: 'empty', showMessage: staticItems.length === 0 })
+      return
+    }
+    dynamicWidgets.forEach((widget, index) => {
+      items.push({ kind: 'drop', index }, { kind: 'resource', widget, index })
+    })
+    items.push({ kind: 'drop', index: dynamicWidgets.length })
+  }
+
+  for (const item of descriptor.items) {
+    if (item.kind === 'widget') {
+      items.push({ kind: 'static', key: `${item.code}:${staticIndex++}`, definition: definition(item.code) })
+    } else if (item.kind === 'resource_widgets') {
+      addResourceWidgets()
+    }
+  }
+
+  if (!descriptor.items.length && !descriptor.supports_resource_widgets) {
+    items.push({ kind: 'static-empty' })
+  }
+  return items
+}
+
 function definition(code: string): WidgetDefinition {
   return props.definitions.find((item) => item.code === code) ?? {
     code, module_code: '', module_label: 'Недоступный модуль', module_description: '',
@@ -248,45 +289,47 @@ function handleError(error: unknown, fallback: string): void {
         <div><h3>{{ area.label }}</h3></div>
         <el-button v-if="area.supports_resource_widgets" :icon="Plus" :disabled="!canUpdate || reordering" @click="add(area.code)">Добавить виджет</el-button>
       </header>
-      <div
-        v-if="!widgetsIn(area.code).length"
-        class="widget-empty-drop-target"
-        :class="{ 'is-available': canDropAt(area.code, 0), 'is-active': isActiveTarget(area.code, 0) }"
-        @dragenter.stop="activateDropTarget(area.code, 0, $event)"
-        @dragover.stop="activateDropTarget(area.code, 0, $event)"
-        @dragleave.stop="leaveDropTarget(area.code, 0, $event)"
-        @drop.stop="drop(area.code, 0, $event)"
-      ><el-empty description="В разделе нет виджетов" :image-size="70" /></div>
-      <template v-for="(item, index) in widgetsIn(area.code)" :key="item.id">
+      <template v-for="item in areaItems(area.code)" :key="item.kind === 'static' ? item.key : item.kind === 'resource' ? `resource-${item.widget.id}` : item.kind === 'drop' ? `drop-${item.index}` : 'empty'">
         <div
+          v-if="item.kind === 'static'"
+          class="template-widget-card"
+          aria-disabled="true"
+        >
+          <strong>{{ item.definition.label }}</strong>
+          <small v-if="item.definition.description">{{ item.definition.description }}</small>
+        </div>
+        <el-empty v-else-if="item.kind === 'static-empty'" description="В разделе нет виджетов" :image-size="70" />
+        <div
+          v-else-if="item.kind === 'empty'"
+          class="widget-empty-drop-target"
+          :class="{ 'is-compact': !item.showMessage, 'is-available': canDropAt(area.code, 0), 'is-active': isActiveTarget(area.code, 0) }"
+          @dragenter.stop="activateDropTarget(area.code, 0, $event)"
+          @dragover.stop="activateDropTarget(area.code, 0, $event)"
+          @dragleave.stop="leaveDropTarget(area.code, 0, $event)"
+          @drop.stop="drop(area.code, 0, $event)"
+        ><el-empty v-if="item.showMessage" description="В разделе нет виджетов" :image-size="70" /></div>
+        <div
+          v-else-if="item.kind === 'drop'"
           class="widget-drop-target"
-          :class="{ 'is-available': canDropAt(area.code, index), 'is-active': isActiveTarget(area.code, index) }"
-          @dragenter.stop="activateDropTarget(area.code, index, $event)"
-          @dragover.stop="activateDropTarget(area.code, index, $event)"
-          @dragleave.stop="leaveDropTarget(area.code, index, $event)"
-          @drop.stop="drop(area.code, index, $event)"
+          :class="{ 'is-available': canDropAt(area.code, item.index), 'is-active': isActiveTarget(area.code, item.index) }"
+          @dragenter.stop="activateDropTarget(area.code, item.index, $event)"
+          @dragover.stop="activateDropTarget(area.code, item.index, $event)"
+          @dragleave.stop="leaveDropTarget(area.code, item.index, $event)"
+          @drop.stop="drop(area.code, item.index, $event)"
         />
         <widget-card
-          :widget="item"
-          :definition="definition(item.code)"
+          v-else-if="item.kind === 'resource'"
+          :widget="item.widget"
+          :definition="definition(item.widget.code)"
           :sources="template.widget_value_sources"
           :disabled="!canUpdate || reordering"
-          :dragging="draggingID === item.id"
-          @dragstart="startDrag(item, $event)"
+          :dragging="draggingID === item.widget.id"
+          @dragstart="startDrag(item.widget, $event)"
           @dragend="finishDrag"
-          @edit="edit(item)"
-          @delete="remove(item)"
+          @edit="edit(item.widget)"
+          @delete="remove(item.widget)"
         />
       </template>
-      <div
-        v-if="widgetsIn(area.code).length"
-        class="widget-drop-target"
-        :class="{ 'is-available': canDropAt(area.code, widgetsIn(area.code).length), 'is-active': isActiveTarget(area.code, widgetsIn(area.code).length) }"
-        @dragenter.stop="activateDropTarget(area.code, widgetsIn(area.code).length, $event)"
-        @dragover.stop="activateDropTarget(area.code, widgetsIn(area.code).length, $event)"
-        @dragleave.stop="leaveDropTarget(area.code, widgetsIn(area.code).length, $event)"
-        @drop.stop="drop(area.code, widgetsIn(area.code).length, $event)"
-      />
     </section>
       </el-col>
     </el-row>
@@ -316,12 +359,15 @@ function handleError(error: unknown, fallback: string): void {
 .widget-area header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
 .widget-area h3 { margin: 0; }
 .widget-area p { margin: 4px 0 0; color: var(--el-text-color-secondary); font-size: 13px; }
+.template-widget-card { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; padding: 12px 14px; border: 1px solid var(--el-border-color-lighter); border-radius: 6px; background: var(--el-fill-color-light); color: var(--el-text-color-regular); cursor: default; pointer-events: none; }
+.template-widget-card small { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.45; }
 .widget-drop-target { display: flex; height: 8px; align-items: center; border-radius: 4px; transition: height .14s ease, background-color .14s ease; }
 .widget-drop-target::after { width: 100%; height: 3px; border-radius: 3px; background: transparent; content: ''; transition: background-color .14s ease, box-shadow .14s ease; }
 .widget-drop-target.is-available { height: 18px; }
 .widget-drop-target.is-available::after { background: var(--el-color-primary-light-7); }
 .widget-drop-target.is-active::after { background: var(--el-color-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary) 18%, transparent); }
 .widget-empty-drop-target { min-height: 158px; border: 1px solid transparent; border-radius: 7px; transition: background-color .14s ease, border-color .14s ease, box-shadow .14s ease; }
+.widget-empty-drop-target.is-compact { min-height: 8px; }
 .widget-empty-drop-target.is-available { border-color: var(--el-color-primary-light-5); background: color-mix(in srgb, var(--el-color-primary) 4%, transparent); }
 .widget-empty-drop-target.is-active { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); box-shadow: inset 0 0 0 1px var(--el-color-primary); }
 

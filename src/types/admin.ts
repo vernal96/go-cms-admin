@@ -283,11 +283,16 @@ export interface ResourceTypeMetadata {
 
 export type WidgetArea = string
 
+export type TemplateWidgetAreaItem =
+  | { kind: 'widget'; code: string }
+  | { kind: 'resource_widgets' }
+
 export interface WidgetAreaDescriptor {
   code: WidgetArea
   label: string
   admin_span: number
   supports_resource_widgets: boolean
+  items: TemplateWidgetAreaItem[]
 }
 
 export interface ResourceTemplate {
