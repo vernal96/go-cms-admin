@@ -68,7 +68,7 @@ const loadNode: LoadFunction = async (node, resolve) => {
 
 function errorNode(parentId: number): TreeNodeData {
   return {
-		id: -parentId, version: 0, parent_id: parentId, template_code: null, icon: 'document',
+		id: -parentId, version: 0, parent_id: parentId, template_code: null, icon: 'file-lines',
     title: 'Не удалось загрузить дочерние ресурсы', menu_title: '',
     display_title: 'Не удалось загрузить дочерние ресурсы', sort: 0,
     in_menu: true, deleted: false, published: false, deleted_at: null, has_children: false, can_create_child: false,

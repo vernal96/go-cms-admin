@@ -5,14 +5,13 @@ import { mount } from '@vue/test-utils'
 import ResourceIcon from './ResourceIcon.vue'
 
 describe('ResourceIcon', () => {
-  it('uses the default only for an empty backend icon string', () => {
+  it('uses the default icon when the backend icon is missing or empty', () => {
     expect(mount(ResourceIcon, { props: { icon: '' } }).get('i').attributes('class')).toBe('fa-solid fa-file-lines')
     expect(mount(ResourceIcon).get('i').attributes('class')).toBe('fa-solid fa-file-lines')
+    expect(mount(ResourceIcon, { props: { icon: ' ' } }).get('i').attributes('class')).toBe('fa-solid fa-file-lines')
   })
 
-  it('passes arbitrary nonempty backend icon classes through without mapping or normalization', () => {
-    const icon = 'fa-brands fa-vk arbitrary-backend-class'
-    expect(mount(ResourceIcon, { props: { icon } }).get('i').attributes('class')).toBe(icon)
-    expect(mount(ResourceIcon, { props: { icon: ' ' } }).get('i').classes()).not.toContain('fa-file-lines')
+  it('builds a solid Font Awesome class from a bare icon name', () => {
+    expect(mount(ResourceIcon, { props: { icon: 'building-columns' } }).get('i').attributes('class')).toBe('fa-solid fa-building-columns')
   })
 })

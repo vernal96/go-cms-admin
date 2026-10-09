@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Compose Font Awesome Solid classes from bare backend icon names in the resource template selector and resource tree. Use `file-lines` when an icon name is empty. Requires the matching kernel icon-name API.
+
 ## 0.4.0
 
 - Show template-preset widgets in each resource widget area at their declared positions. Read-only cards display the widget name and description with subdued styling, while resource widgets keep their editing and drag-and-drop controls.
