@@ -92,7 +92,7 @@ watch(
 </script>
 
 <template>
-  <section class="workspace-page narrow-page">
+  <section class="workspace-page site-settings-page">
     <header class="page-header">
       <div>
         <h1>Настройки сайта</h1>

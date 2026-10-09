@@ -1052,6 +1052,42 @@ input {
   max-width: 620px;
 }
 
+.site-settings-page .site-form {
+  width: 100%;
+  max-width: none;
+}
+
+.site-settings-page .tabbed-dynamic-fields .el-tabs__header.is-left {
+  flex: 0 0 20%;
+  width: 20%;
+  min-width: 0;
+  max-width: none;
+  margin-right: 0;
+}
+
+.site-settings-page .tabbed-dynamic-fields .el-tabs__content {
+  flex: 1 1 80%;
+  width: 80%;
+  min-width: 0;
+}
+
+.site-settings-page .tabbed-dynamic-fields .el-tabs__nav,
+.site-settings-page .tabbed-dynamic-fields .el-tabs__nav-wrap,
+.site-settings-page .tabbed-dynamic-fields .el-tabs__nav-scroll,
+.site-settings-page .tabbed-dynamic-fields .el-tabs__item.is-left {
+  width: 100%;
+  min-width: 0;
+}
+
+.site-settings-page .tabbed-dynamic-fields .el-tabs__item.is-left {
+  height: auto;
+  min-height: 40px;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
 .full-width {
   width: 100%;
 }
