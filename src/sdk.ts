@@ -9,6 +9,7 @@ export { default as DynamicFieldsForm } from './components/fields/DynamicFieldsF
 export { default as ConfigurationEditor } from './components/fields/ConfigurationEditor.vue'
 export { createFieldValues, validateFieldValues, unsupportedFieldTypes, fieldEditorError, fieldErrorMessage, isMultipleField, singleValueField } from './components/fields/model'
 export type { DynamicValues, DynamicFieldErrors, FieldEditorResolver } from './components/fields/model'
+export type { FileUploadContext } from './components/fields/file-upload-context'
 export { useFieldValidation } from './components/fields/use-field-validation'
 export { adminRequest, adminBlob, AdminAPIError } from './api/admin-api'
 export { useSelectedSite } from './composables/use-selected-site'

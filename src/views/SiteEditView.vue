@@ -103,6 +103,7 @@ watch(
     <site-form
       v-else-if="initial"
       :access-token="accessToken"
+      :site-id="Number(route.params.siteId)"
       :initial="initial"
       editing
       :submitting="submitting"

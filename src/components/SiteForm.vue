@@ -28,11 +28,13 @@ import type {
   SiteProfilesResponse,
 } from '../types/admin'
 import type { FieldValidationError } from '../types/auth'
+import type { FileUploadContext } from './fields/file-upload-context'
 
 const { unsupportedFieldTypes, validateFieldValues } = useFieldValidation()
 
 const props = defineProps<{
   accessToken: string
+  siteId?: number
   initial?: SiteFormPayload | null
   editing?: boolean
   submitting?: boolean
@@ -64,6 +66,11 @@ const selectedProfile = computed(
     profiles.value.find((profile) => profile.code === form.profile_code) ??
     null,
 )
+const fileUploadContext = computed<FileUploadContext | undefined>(() => {
+  if (props.editing && props.siteId && selectedProfile.value?.code) return { endpoint: '/api/files/field-uploads', target: { owner: 'site', site_id: props.siteId, profile_code: selectedProfile.value.code } }
+  if (selectedProfile.value?.code) return { endpoint: '/api/files/field-uploads', target: { owner: 'site', profile_code: selectedProfile.value.code } }
+  return undefined
+})
 
 const displayedFieldErrors = computed<DynamicFieldErrors>(() => {
   const errors: DynamicFieldErrors = {}
@@ -194,17 +201,21 @@ function submit(): void {
       v-if="selectedProfile && editing"
       :fields="selectedProfile.fields"
       :access-token="accessToken"
+      :site-id="siteId"
       :editor-tabs="selectedProfile.editor_tabs"
       :model-value="form.settings"
       :errors="displayedFieldErrors"
+      :file-upload-context="fileUploadContext"
       @update:model-value="form.settings = $event"
     />
     <dynamic-fields-form
       v-else-if="selectedProfile"
       :fields="selectedProfile.fields"
       :access-token="accessToken"
+      :site-id="siteId"
       :model-value="form.settings"
       :errors="displayedFieldErrors"
+      :file-upload-context="fileUploadContext"
       @update:model-value="form.settings = $event"
     />
     <div class="form-actions">

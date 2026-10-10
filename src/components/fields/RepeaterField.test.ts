@@ -31,6 +31,16 @@ describe('RepeaterField', () => {
     expect(nested[0]!.props()).toMatchObject({ field: title, siteId: 7, accessToken: 'token', resourceTemplates: [{ code: 'page', label: 'Page' }] })
     wrapper.unmount()
   })
+  it('keeps upload owner context separate and encodes nested repeater indexes in reference paths', () => {
+    const upload = { endpoint: '/api/files/field-uploads', target: { owner: 'resource', site_id: 7, resource_id: 42 } }
+    const wrapper = mount(DynamicField, {
+      props: { field, modelValue: [{ title: 'One' }], referencePath: ['slides'], fileUploadContext: upload },
+    })
+    const nested = wrapper.findComponent(RepeaterField).findAllComponents(DynamicField)
+    expect(nested[0]!.props('referencePath')).toEqual(['slides', '0', 'title'])
+    expect(nested[0]!.props('fileUploadContext')).toEqual(upload)
+    wrapper.unmount()
+  })
   it('adds with shared defaults, edits without mutating input and observes max_items', async () => {
     const input = [{ title: 'One' }, { title: 'Two' }]
     const { wrapper, model } = setup(input)

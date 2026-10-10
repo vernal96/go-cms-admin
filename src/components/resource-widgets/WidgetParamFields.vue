@@ -4,6 +4,7 @@ import { ElFormItem, ElOption, ElRadioButton, ElRadioGroup, ElSelect } from 'ele
 import DynamicFieldsForm from '../fields/DynamicFieldsForm.vue'
 import { createFieldValues, type DynamicFieldErrors } from '../fields/model'
 import type { FieldDefinition, WidgetParamBinding, WidgetValueShape, WidgetValueSource } from '../../types/admin'
+import type { FileUploadContext } from '../fields/file-upload-context'
 
 const props = defineProps<{
   fields: FieldDefinition[]
@@ -14,6 +15,7 @@ const props = defineProps<{
   errors: DynamicFieldErrors
   siteId: number
   accessToken: string
+  fileUploadContext?: FileUploadContext
 }>()
 const emit = defineEmits<{
   'update:modelValue': [value: Record<string, unknown>]
@@ -56,7 +58,7 @@ function setSource(key: string, id: unknown): void {
         <el-option v-for="source in sourcesFor(field.key)" :key="sourceId(source)" :value="sourceId(source)" :label="`${source.label} (${source.kind === 'resource_field' ? 'Поле шаблона' : 'Свойство ресурса'}: ${source.key})`" />
       </el-select>
     </el-form-item>
-    <dynamic-fields-form v-else :model-value="modelValue" :fields="[{ ...field, visible_when: undefined }]" :errors="errors" :site-id="siteId" :access-token="accessToken" @update:model-value="emit('update:modelValue', $event)" />
+    <dynamic-fields-form v-else :model-value="modelValue" :fields="[{ ...field, visible_when: undefined }]" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" @update:model-value="emit('update:modelValue', $event)" />
   </div>
 </template>
 

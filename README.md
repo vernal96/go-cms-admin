@@ -97,3 +97,32 @@ Install the generated tarball in a clean host to validate the public `app` and
 Local checks remain attached to individual fields. Server validation failures are displayed in a shared persistent summary inside the form or dialog. Messages use schema labels and one-based item numbers for nested lists; unknown fields retain their keys, and custom validator codes use a generic readable message.
 
 The existing `error.details.fields` API remains unchanged. The UI retains each original key, code and parameter object separately from display text, so field highlighting can be added later. When the server reports validation failure without field details (including some Forms/Mail operations), the summary asks the user to check their values without exposing the internal server message. Errors clear before retrying or switching editors; rejected values remain in the draft.
+
+## File fields
+
+Dynamic `file` fields use the file manager's tile presentation and hide folders.
+Each selected value is a distinct Media ID and may refer to any file type
+allowed by the field's MIME constraints; image editing is available only for
+supported image formats.
+The field definition supplies a disk, a virtual upload path and a media-settings
+code; optional MIME patterns are checked before upload in the UI and again by
+the backend when values are saved. The virtual path is the destination for new
+uploads. Existing files can be selected from any folder on the configured disk.
+Tile uploads use an owner-scoped endpoint. The UI sends only the owner identity,
+the structured field path and the file; it never sends a disk or folder. The
+server resolves the trusted field definition, detects the real MIME type before
+storage and creates the configured virtual folder when needed. The generic file
+manager upload endpoint remains separate.
+
+A single-value field displays one full-width tile. A multiple-value field
+displays ordered tiles that can be rearranged by dragging. Clicking the field
+opens the file manager. The context menu can edit supported images, open that
+field's media metadata, remove a tile from the form draft, or permanently delete
+the file after confirmation. Ordinary removal takes effect when the owning form
+is saved. Permanent deletion acts immediately and can be rejected while another
+reference exists; the UI reports when byte cleanup is still pending and polls
+the operation status. Forms results and other protected references prevent
+physical deletion.
+
+The backend contract, including response statuses and reference conflicts, is
+documented in [Core's file-field deletion guide](https://github.com/vernal96/go-cms-kernel/blob/main/docs/modules/core/file-field-deletion.md).

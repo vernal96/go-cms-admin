@@ -5,10 +5,11 @@ import { ElAlert } from 'element-plus'
 import { adminPluginRegistryKey } from '../../admin-plugins/context'
 import type { ConfigField, FieldDefinition } from '../../types/admin'
 import DynamicFieldsForm from './DynamicFieldsForm.vue'
+import type { FileUploadContext } from './file-upload-context'
 
 const { validateFieldValues } = useFieldValidation()
 
-const props = defineProps<{ fields: ConfigField[]; editor?: string; siteId?: number; accessToken?: string; context?: Record<string, unknown> }>()
+const props = defineProps<{ fields: ConfigField[]; editor?: string; siteId?: number; accessToken?: string; context?: Record<string, unknown>; fileUploadContext?: FileUploadContext }>()
 const model = defineModel<Record<string, unknown>>({ required: true })
 const registry = inject(adminPluginRegistryKey, undefined)
 const customEditor = computed(() => props.editor ? registry?.configEditor(props.editor) : undefined)
@@ -37,5 +38,5 @@ defineExpose({ validate })
 <template>
  <component v-if="customEditor" :is="customEditor" ref="custom" v-model="model" :fields="fields" :site-id="siteId" :access-token="accessToken" :context="context" />
  <el-alert v-else-if="editor" type="error" :closable="false" :title="`Редактор «${editor}» недоступен.`" />
- <dynamic-fields-form v-else v-model="model" :fields="fields" :errors="errors" :site-id="siteId" :access-token="accessToken" />
+ <dynamic-fields-form v-else v-model="model" :fields="fields" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
 </template>

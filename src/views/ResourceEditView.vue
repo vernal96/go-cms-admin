@@ -28,6 +28,7 @@ import { useRoute } from 'vue-router'
 import { AdminAPIError, adminRequest, adminRequestVoid } from '../api/admin-api'
 import DynamicFieldsForm from '../components/fields/DynamicFieldsForm.vue'
 import TabbedDynamicFieldsForm from '../components/fields/TabbedDynamicFieldsForm.vue'
+import type { FileUploadContext } from '../components/fields/file-upload-context'
 import MediaImageField from '../components/images/MediaImageField.vue'
 import RichTextEditor from '../components/RichTextEditor.vue'
 import ResourceExtensionEditor from '../components/resource-extensions/ResourceExtensionEditor.vue'
@@ -116,6 +117,10 @@ const siteId = computed(() => Number(route.params.siteId))
 const selectedTemplate = computed(() =>
   metadata.value.templates.find((item) => item.code === form.template_code) ?? null,
 )
+const fileUploadContext = computed<FileUploadContext>(() => ({
+  endpoint: '/api/files/field-uploads',
+  target: { owner: 'resource', site_id: siteId.value, resource_id: resourceId.value, ...(selectedTemplate.value?.code ? { template_code: selectedTemplate.value.code } : {}) },
+}))
 const selectedType = computed(() => metadata.value.types.find((item) => item.code === form.type) ?? null)
 const settingsFields = computed(() => selectedType.value?.settings_fields ?? [])
 const contentTypes = computed(() => selectedType.value?.content_types ?? [])
@@ -590,6 +595,7 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
               :errors="localFieldErrors"
               :site-id="siteId"
               :access-token="accessToken"
+              :file-upload-context="fileUploadContext"
             />
           </div>
         </el-tab-pane>

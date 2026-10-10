@@ -51,14 +51,16 @@ const props = withDefaults(defineProps<{
   allowedMIMETypes?: string[]
   initialStorage?: string
   initialPath?: string
+  multiple?: boolean
 }>(), {
   picker: false,
   allowedStorages: () => [],
   allowedMIMETypes: () => [],
   initialStorage: '',
   initialPath: '',
+  multiple: false,
 })
-const emit = defineEmits<{ select: [item: FilesystemItem] }>()
+const emit = defineEmits<{ select: [item: FilesystemItem]; selectMultiple: [items: FilesystemItem[]] }>()
 
 const disks = ref<FilesystemDisksResponse['items']>([])
 const permissions = ref({ read: false, create: false, update: false, delete: false })
@@ -102,9 +104,8 @@ const sortedItems = computed(() => [...(listing.value?.items ?? [])].sort((left,
   return sortDirection.value === 'asc' ? result : -result
 }))
 const selectedItems = computed(() => sortedItems.value.filter((item) => selected.value.has(itemKey(item))))
-const selectableItem = computed(() => selectedItems.value.length === 1 && selectedItems.value[0]?.kind === 'file'
-  ? selectedItems.value[0]
-  : null)
+const selectableItems = computed(() => selectedItems.value.filter((item) => item.kind === 'file' && matchesPicker(item)))
+const selectableItem = computed(() => selectableItems.value.length === 1 ? selectableItems.value[0] : null)
 const selectedSummary = computed(() => {
   const items = selectedItems.value
   if (items.length === 0) return 'Ничего не выбрано'
@@ -525,7 +526,9 @@ async function confirmMove(folderID: number | null): Promise<void> {
   moveItems.value = []
 }
 function confirmSelection(): void {
-  if (selectableItem.value && matchesPicker(selectableItem.value)) emit('select', selectableItem.value)
+  if (props.multiple) {
+    if (selectableItems.value.length) emit('selectMultiple', selectableItems.value)
+  } else if (selectableItem.value) emit('select', selectableItem.value)
 }
 function matchesPicker(item: FilesystemItem): boolean {
   if (item.kind !== 'file') return false
@@ -671,7 +674,7 @@ async function readEntries(entry: FileSystemDirectoryEntry): Promise<FileSystemE
     <footer class="file-statusbar">
       <span class="file-status-text" :title="selectedSummary">{{ selectedSummary }}</span>
       <el-button v-if="permissions.delete && selectedItems.length" text type="danger" :icon="Delete" @click="remove()">Удалить</el-button>
-      <el-button v-if="picker" type="primary" :disabled="!selectableItem || !matchesPicker(selectableItem)" @click="confirmSelection">Выбрать</el-button>
+      <el-button v-if="picker" type="primary" :disabled="props.multiple ? !selectableItems.length : !selectableItem" @click="confirmSelection">{{ props.multiple ? `Выбрать (${selectableItems.length})` : 'Выбрать' }}</el-button>
     </footer>
 
     <div v-if="contextMenu" class="file-context-menu" :style="{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }" @click.stop>

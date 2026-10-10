@@ -96,6 +96,26 @@ describe('FileExplorer', () => {
     expect(wrapper.find('.file-status-text').text()).toContain('text/plain')
   })
 
+  it('selects several MIME-compatible files from the configured disk in multiple-picker mode', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(json({ items: [{ code: 'public', visibility: 'public' }], permissions: listing.permissions }))
+      .mockResolvedValueOnce(json({ ...listing, items: listing.items.slice(1) }))
+    vi.stubGlobal('fetch', fetchMock)
+    const wrapper = mount(FileExplorer, {
+      props: {
+        accessToken: 'token', permissions: new Set(['core.file.read']), picker: true,
+        multiple: true, allowedStorages: ['public'], allowedMIMETypes: ['text/*'],
+      },
+    })
+    await flushPromises()
+    const tiles = wrapper.findAll('.file-tile')
+    await tiles[0]!.trigger('click')
+    await tiles[1]!.trigger('click', { ctrlKey: true })
+    await wrapper.findAll('button').find(button => button.text().includes('Выбрать (2)'))!.trigger('click')
+    expect(wrapper.emitted('selectMultiple')?.[0]?.[0]).toMatchObject([{ id: 2 }, { id: 3 }])
+    wrapper.unmount()
+  })
+
   it('shows arbitrary disk labels and switches requests by code', async () => {
     const disks = [
       { code: 'media', label: 'Медиатека', visibility: 'public' },

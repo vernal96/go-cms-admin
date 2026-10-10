@@ -8,6 +8,7 @@ import { AdminAPIError } from '../../api/admin-api'
 import { useRouter } from 'vue-router'
 import AccessDeniedView from '../../components/AccessDeniedView.vue'
 import DynamicFieldsForm from '../../components/fields/DynamicFieldsForm.vue'
+import type { FileUploadContext } from '../../components/fields/file-upload-context'
 import { createFieldValues,  type DynamicFieldErrors, type DynamicValues } from '../../components/fields/model'
 import { useSelectedSite } from '../../composables/use-selected-site'
 import { listSendTemplates, previewMail, queueMail } from './api'
@@ -32,6 +33,11 @@ const sending = ref(false)
 const error = ref<string | null>(null)
 const queuedID = ref<number | null>(null)
 const template = computed(() => templates.value.find((item) => item.id === templateID.value) ?? null)
+const fileUploadContext = computed<FileUploadContext | undefined>(() => {
+  const siteID = selected.selectedSite.value?.id
+  if (!siteID || !templateID.value) return undefined
+  return { endpoint: `/api/sites/${siteID}/mail/send/templates/${templateID.value}/variables/files`, target: {} }
+})
 
 async function load(): Promise<void> {
   const siteID = selected.selectedSite.value?.id
@@ -111,7 +117,7 @@ onMounted(() => void load())
             <el-option v-for="item in templates" :key="item.id" :value="item.id" :label="`${item.name} (${item.code})`" />
           </el-select>
         </el-form-item>
-        <dynamic-fields-form v-if="template" :fields="template.variables" :model-value="values" :errors="fieldErrors" :site-id="selected.selectedSite.value.id" :access-token="accessToken" @update:model-value="values = $event; preview = null" />
+        <dynamic-fields-form v-if="template" :fields="template.variables" :model-value="values" :errors="fieldErrors" :site-id="selected.selectedSite.value.id" :access-token="accessToken" :file-upload-context="fileUploadContext" @update:model-value="values = $event; preview = null" />
       </el-form>
       <el-alert v-if="template && template.variables.length === 0" type="info" :closable="false" title="У этого шаблона нет переменных." />
       <el-button type="primary" :loading="previewing" :disabled="!template || sending" @click="renderPreview">Предпросмотр</el-button>

@@ -117,6 +117,10 @@ describe('ResourceEditView schema transitions', () => {
       global: { renderStubDefaultSlot: true },
     })
     await flushPromises()
+		expect(wrapper.getComponent({ name: 'TabbedDynamicFieldsForm' }).props('fileUploadContext')).toEqual({
+			endpoint: '/api/files/field-uploads',
+			target: { owner: 'resource', site_id: 7, resource_id: 9, template_code: 'page' },
+		})
     expect(wrapper.findAllComponents({ name: 'ResourceIcon' }).map(icon => icon.props('icon'))).toEqual(['document', 'document'])
     const errors = [{ key: 'page_title', code: 'regex' }]
     requestMock.mockRejectedValueOnce(new AdminAPIError(422, 'validation_failed', 'request data is invalid', errors))

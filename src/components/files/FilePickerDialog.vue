@@ -8,14 +8,19 @@ defineProps<{
   permissions: ReadonlySet<string>
   storages?: string[]
   mimeTypes?: string[]
+  multiple?: boolean
   initialStorage?: string
   initialPath?: string
 }>()
 const visible = defineModel<boolean>({ required: true })
-const emit = defineEmits<{ select: [item: FilesystemItem] }>()
+const emit = defineEmits<{ select: [item: FilesystemItem]; selectMultiple: [items: FilesystemItem[]] }>()
 
 function select(item: FilesystemItem): void {
   emit('select', item)
+  visible.value = false
+}
+function selectMultiple(items: FilesystemItem[]): void {
+  emit('selectMultiple', items)
   visible.value = false
 }
 </script>
@@ -27,10 +32,12 @@ function select(item: FilesystemItem): void {
       :permissions="permissions"
       :allowed-storages="storages"
       :allowed-m-i-m-e-types="mimeTypes"
+      :multiple="multiple"
       :initial-storage="initialStorage"
       :initial-path="initialPath"
       picker
       @select="select"
+      @select-multiple="selectMultiple"
     />
   </el-dialog>
 </template>

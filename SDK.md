@@ -57,6 +57,19 @@ including custom semantic types. The registered editor receives one scalar value
 per item; list bounds and indexed errors are handled by the SDK. The backend
 compiler must support the same list options and validate the resulting array.
 
+The built-in `file` editor uses the file manager's tile UI and consumes the
+backend options `disk`, `virtual_path`, `settings_code`, optional `mime_types`,
+and `multiple`. This editor is part of the admin application, not a separately
+exported SDK component. Its user-visible upload, selection, ordering and
+deletion behavior is described in the [admin README](README.md#file-fields);
+the authoritative validation and deletion contract is in the [kernel guide](https://github.com/vernal96/go-cms-kernel/blob/main/docs/modules/core/fields.md#файловое-поле).
+Hosts that render `DynamicField`, `DynamicFieldsForm`, or `ConfigurationEditor`
+outside the bundled editors must pass the optional `fileUploadContext` prop.
+Its `endpoint` and owner `target` identify a trusted backend schema; the
+component appends `field_path` itself, including repeater indexes. Without this
+context the upload action is disabled, while selection from the configured disk
+continues to work. The `FileUploadContext` type is exported from the SDK.
+
 ## Explicit replacements (0.2.0)
 
 ```ts

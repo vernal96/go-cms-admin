@@ -5,6 +5,7 @@ import { ElTabPane, ElTabs } from 'element-plus'
 import type { FieldDefinition, FieldEditorTab } from '../../types/admin'
 import DynamicFieldsForm from './DynamicFieldsForm.vue'
 import type { DynamicFieldErrors, DynamicValues } from './model'
+import type { FileUploadContext } from './file-upload-context'
 
 const props = withDefaults(
   defineProps<{
@@ -15,6 +16,7 @@ const props = withDefaults(
     siteId?: number
     accessToken?: string
     resourceTemplates?: Array<{ code: string; label: string }>
+    fileUploadContext?: FileUploadContext
   }>(),
   {
     editorTabs: () => [],
@@ -75,6 +77,7 @@ watch(() => props.errors, selectFirstErrorTab, { deep: true })
         :site-id="siteId"
         :access-token="accessToken"
         :resource-templates="resourceTemplates"
+        :file-upload-context="fileUploadContext"
         @update:model-value="emit('update:modelValue', $event)"
       />
     </el-tab-pane>
@@ -87,6 +90,7 @@ watch(() => props.errors, selectFirstErrorTab, { deep: true })
     :site-id="siteId"
     :access-token="accessToken"
     :resource-templates="resourceTemplates"
+    :file-upload-context="fileUploadContext"
     @update:model-value="emit('update:modelValue', $event)"
   />
 </template>

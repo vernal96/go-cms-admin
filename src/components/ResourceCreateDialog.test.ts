@@ -218,6 +218,10 @@ describe('ResourceCreateDialog', () => {
       siteId: 7,
       accessToken: 'token',
       resourceTemplates: templates,
+		fileUploadContext: {
+			endpoint: '/api/files/field-uploads',
+			target: { owner: 'resource', site_id: 7, template_code: 'news' },
+		},
     })
     expect(wrapper.findComponent({ name: 'ResourceIcon' }).props('icon')).toBe('newspaper')
   })

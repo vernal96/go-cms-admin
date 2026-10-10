@@ -5,6 +5,7 @@ import { ElAlert, ElFormItem, ElTag } from 'element-plus'
 import type { FieldDefinition } from '../../types/admin'
 import DynamicField from './DynamicField.vue'
 import type { DynamicFieldErrors, DynamicValues } from './model'
+import type { FileUploadContext } from './file-upload-context'
 
 const { unsupportedFieldTypes } = useFieldValidation()
 
@@ -16,6 +17,7 @@ const props = withDefaults(
 		siteId?: number
 		accessToken?: string
 		resourceTemplates?: Array<{ code: string; label: string }>
+    fileUploadContext?: FileUploadContext
   }>(),
   { errors: () => ({}) },
 )
@@ -50,11 +52,13 @@ function update(key: string, value: unknown): void {
     <dynamic-field
       :field="field"
  :errors="errors"
- :field-path="field.key"
+      :field-path="field.key"
+      :reference-path="[field.key]"
       :model-value="modelValue[field.key]"
 			:site-id="siteId ?? 0"
 			:access-token="accessToken ?? ''"
 			:resource-templates="resourceTemplates ?? []"
+      :file-upload-context="fileUploadContext"
       @update:model-value="update(field.key, $event)"
     />
     <el-tag v-if="field.public !== undefined && field.type === 'checkbox'" size="small" :type="field.public ? 'success' : 'info'">{{ field.public ? 'Публичный' : 'Приватный' }}</el-tag>

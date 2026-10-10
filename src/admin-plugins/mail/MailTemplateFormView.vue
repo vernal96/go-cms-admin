@@ -66,7 +66,7 @@ function assignTemplate(item: MailTemplate): void {
 }
 
 function cloneField(value: FieldDefinition): FieldDefinition {
-  return { ...value, required: value.required, validators: JSON.parse(JSON.stringify(value.validators ?? [])), options: value.options ? { ...value.options, choices: value.options.choices?.map((item) => ({ ...item })), storages: [...(value.options.storages ?? [])], mime_types: [...(value.options.mime_types ?? [])] } : undefined }
+  return { ...value, required: value.required, validators: JSON.parse(JSON.stringify(value.validators ?? [])), options: value.options ? { ...value.options, choices: value.options.choices?.map((item) => ({ ...item })), mime_types: [...(value.options.mime_types ?? [])] } : undefined }
 }
 
 async function load(): Promise<void> {

@@ -57,7 +57,9 @@ describe('LibraryItemEditView', () => {
     requestMock
       .mockResolvedValueOnce({
         types: [{ code: 'library', label: 'Библиотека', capabilities: { owns_library_items: true } }],
-        templates: [{ code: 'article', label: 'Article', fields: [], supports_resource_widgets: false }],
+        templates: [{ code: 'article', label: 'Article', fields: [
+			{ key: 'document', type: 'file', label: 'Document', required: false, validators: [] },
+		], supports_resource_widgets: false }],
         widgets: [], extensions: [],
       })
       .mockResolvedValueOnce({
@@ -77,9 +79,13 @@ describe('LibraryItemEditView', () => {
     await flushPromises()
 
     expect(wrapper.getComponent({ name: 'ElTabs' }).props('modelValue')).toBe('main')
-    expect(wrapper.findAllComponents({ name: 'ElTabPane' }).map((tab) => tab.props('label'))).toEqual(['Основное', 'Настройки'])
+    expect(wrapper.findAllComponents({ name: 'ElTabPane' }).map((tab) => tab.props('label'))).toEqual(['Основное', 'Настройки', 'Параметры полей'])
     const model = wrapper.findComponent({ name: 'ElForm' }).props('model') as Record<string, unknown>
     expect(model.template_code).toBe('article')
+		expect(wrapper.getComponent({ name: 'DynamicFieldsForm' }).props('fileUploadContext')).toEqual({
+			endpoint: '/api/files/field-uploads',
+			target: { owner: 'resource', site_id: 7, template_code: 'article' },
+		})
     expect(wrapper.text()).not.toContain('Родительский ресурс')
     Object.assign(model, { title: ' First item ', slug: 'first-item' })
     await wrapper.findComponent({ name: 'ElButton' }).trigger('click')
@@ -122,6 +128,10 @@ describe('LibraryItemEditView', () => {
     expect(wrapper.getComponent({ name: 'ElTabs' }).props('modelValue')).toBe('main')
 		expect(wrapper.findComponent({ name: 'TabbedDynamicFieldsForm' }).exists()).toBe(false)
 		expect(wrapper.findComponent({ name: 'DynamicFieldsForm' }).exists()).toBe(true)
+		expect(wrapper.getComponent({ name: 'DynamicFieldsForm' }).props('fileUploadContext')).toEqual({
+			endpoint: '/api/files/field-uploads',
+			target: { owner: 'resource', site_id: 7, resource_id: 101, template_code: 'article' },
+		})
     expect(wrapper.findAllComponents({ name: 'ElTabPane' }).map((tab) => tab.props('label'))).toEqual([
       'Основное', 'Виджеты', 'Настройки', 'Параметры полей', 'История', 'SEO',
     ])

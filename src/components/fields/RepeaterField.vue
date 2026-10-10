@@ -4,6 +4,7 @@ import { ElButton, ElFormItem } from 'element-plus'
 import type { FieldDefinition } from '../../types/admin'
 import DynamicField from './DynamicField.vue'
 import { createFieldValues, validatorNumber, type DynamicFieldErrors, type DynamicValues } from './model'
+import type { FileUploadContext } from './file-upload-context'
 
 const props = defineProps<{
   field: FieldDefinition
@@ -13,6 +14,8 @@ const props = defineProps<{
   resourceTemplates?: Array<{ code: string; label: string }>
   errors?: DynamicFieldErrors
   fieldPath?: string
+  referencePath?: string[]
+  fileUploadContext?: FileUploadContext
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: DynamicValues[]] }>()
 const fields = computed(() => props.field.options?.fields ?? [])
@@ -21,6 +24,7 @@ const minimum = computed(() => validatorNumber(props.field, 'min_items'))
 const maximum = computed(() => validatorNumber(props.field, 'max_items'))
 const canAdd = computed(() => !maximum.value || rows.value.length < maximum.value)
 const path = computed(() => props.fieldPath ?? props.field.key)
+const referencePath = computed(() => props.referencePath ?? [props.field.key])
 // UI identity follows a row across edits and moves; it never enters saved data.
 let nextID = 0
 const rowIDs = ref<number[]>([])
@@ -73,6 +77,7 @@ function update(index: number, key: string, value: unknown): void {
           :field="nested" :model-value="row[nested.key]"
           :site-id="siteId" :access-token="accessToken" :resource-templates="resourceTemplates"
           :errors="errors" :field-path="`${path}[${index}].${nested.key}`"
+          :reference-path="[...referencePath, String(index), nested.key]" :file-upload-context="fileUploadContext"
           @update:model-value="update(index, nested.key, $event)"
         />
       </el-form-item>

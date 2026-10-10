@@ -3,9 +3,18 @@ import type { Pagination, ConfigField, FieldTypeMetadata, ValidatorDefinition, V
 export type FormsFieldType = string
 
 export interface FormsChoice { value: string; label: string }
+export interface FormsFileOptions {
+  disk: string
+  virtual_path: string
+  settings_code: string
+  mime_types?: string[]
+  multiple?: boolean
+}
 export interface FormsFieldOptions {
   [key: string]: unknown
-  storages?: string[]
+  disk?: string
+  virtual_path?: string
+  settings_code?: string
   step?: number
   choices?: FormsChoice[]
   multiple?: boolean

@@ -35,6 +35,7 @@ describe('WidgetSettingsDialog tabs', () => {
         ]),
         widget: null, sources: [],
         siteId: 7,
+        resourceId: 9,
         accessToken: 'token',
       },
       global: { renderStubDefaultSlot: true, stubs: { ElDialog: { template: '<div><slot /><slot name="footer" /></div>' } } },
@@ -59,7 +60,7 @@ it('reopens a bound required parameter and saves the reference without a literal
   def.param_types = { title: { type: 'string', multiple: false } }
   const wrapper = shallowMount(WidgetSettingsDialog, {
     props: {
-      modelValue: true, definition: def, siteId: 7, accessToken: 'token',
+      modelValue: true, definition: def, siteId: 7, resourceId: 9, accessToken: 'token',
       sources: [{ kind: 'resource_property', key: 'title', label: 'Название', type: 'string', multiple: false }],
       widget: { id: 1, code: def.code, area: 'body', position: 0, view: 'default', columns: 12,
         margin_top: 0, margin_bottom: 0, enabled: true, params: {},
@@ -80,7 +81,7 @@ it('rejects a source that is no longer compatible with the widget field', async 
   const def = definition([])
   def.param_types = { title: { type: 'string', multiple: false } }
   const wrapper = shallowMount(WidgetSettingsDialog, {
-    props: { modelValue: true, definition: def, widget: null, siteId: 7, accessToken: 'token', sources: [] },
+    props: { modelValue: true, definition: def, widget: null, siteId: 7, resourceId: 9, accessToken: 'token', sources: [] },
     global: { renderStubDefaultSlot: true, stubs: { ElDialog: { template: '<div><slot /><slot name="footer" /></div>' } } },
   })
   wrapper.getComponent({ name: 'WidgetParamFields' }).vm.$emit('update:bindings', { title: { kind: 'resource_field', key: 'removed' } })

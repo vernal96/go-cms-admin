@@ -2,6 +2,7 @@
 import ServerValidationErrors from './fields/ServerValidationErrors.vue'
 import { useServerValidation } from './fields/server-validation'
 import { useFieldValidation } from './fields/use-field-validation'
+import type { FileUploadContext } from './fields/file-upload-context'
 import { computed, reactive, ref, watch } from 'vue'
 import {
   ElAlert,
@@ -70,6 +71,10 @@ const selectedTemplate = computed(
     metadata.value.templates.find((item) => item.code === form.template_code) ??
     null,
 )
+const fileUploadContext = computed<FileUploadContext | undefined>(() => selectedTemplate.value?.code ? {
+  endpoint: '/api/files/field-uploads',
+  target: { owner: 'resource', site_id: props.siteId, template_code: selectedTemplate.value.code },
+} : undefined)
 const orderedTypes = computed(() => {
   const page = metadata.value.types.find(item => item.code === 'page')
   return page ? [page, ...metadata.value.types.filter(item => item.code !== 'page')] : metadata.value.types
@@ -320,6 +325,7 @@ defineExpose({ open })
           :site-id="siteId"
           :access-token="accessToken"
           :resource-templates="metadata.templates"
+          :file-upload-context="fileUploadContext"
           @update:model-value="form.fields = $event"
         />
         <dynamic-fields-form
@@ -330,6 +336,7 @@ defineExpose({ open })
           :site-id="siteId"
           :access-token="accessToken"
           :resource-templates="metadata.templates"
+          :file-upload-context="fileUploadContext"
           @update:model-value="form.fields = $event"
         />
       </template>

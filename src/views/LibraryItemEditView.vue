@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import DynamicFieldsForm from '../components/fields/DynamicFieldsForm.vue'
+import type { FileUploadContext } from '../components/fields/file-upload-context'
 import MediaImageField from '../components/images/MediaImageField.vue'
 import RichTextEditor from '../components/RichTextEditor.vue'
 import ResourceExtensionEditor from '../components/resource-extensions/ResourceExtensionEditor.vue'
@@ -46,6 +47,10 @@ const ownerLibraryId = ref(0)
 const activeTab = ref('main')
 const form = reactive({ image_media_id: null as number | null, library_id: 0, template_code: null as string | null, title: '', slug: '', annotation: '', content: '', is_public: true, is_searchable: true, published_at: null as Date | null, unpublished_at: null as Date | null, fields: {} as Record<string, unknown> })
 const selectedTemplate = computed(() => metadata.value.templates.find((item) => item.code === form.template_code) ?? null)
+const fileUploadContext = computed<FileUploadContext | undefined>(() => form.template_code ? {
+  endpoint: '/api/files/field-uploads',
+  target: { owner: 'resource', site_id: siteId.value, ...(itemId.value ? { resource_id: itemId.value } : {}), template_code: form.template_code },
+} : undefined)
 const applicableExtensions = computed(() => metadata.value.extensions.filter((extension) => extension.applies_to.includes('page')))
 const showWidgetsTab = computed(() => !creating.value && selectedTemplate.value?.supports_resource_widgets === true)
 const showFieldsTab = computed(() => (selectedTemplate.value?.fields.length ?? 0) > 0)
@@ -200,7 +205,7 @@ watch(() => [route.params.siteId, route.params.resourceId, route.params.itemId],
         </el-tab-pane>
 
         <el-tab-pane v-if="showFieldsTab" label="Параметры полей" name="fields">
-          <dynamic-fields-form v-model="form.fields" :fields="selectedTemplate!.fields" :errors="fieldErrors" />
+          <dynamic-fields-form v-model="form.fields" :fields="selectedTemplate!.fields" :errors="fieldErrors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
         </el-tab-pane>
 
         <el-tab-pane v-if="!creating && canReadHistory" label="История" name="history">

@@ -46,7 +46,7 @@ defineExpose({ validate })
 function defaultOptions(type: string): FieldOptions | undefined {
   if (type === 'radio') return { choices: [] }
   if (type === 'select') return { choices: [], multiple: false }
-  if (type === 'file') return { storages: [], mime_types: [] }
+  if (type === 'file') return { disk: '', virtual_path: '', settings_code: '', mime_types: [] }
   if (type === 'int' || type === 'float' || type === 'phone') return {}
   return undefined
 }
@@ -99,9 +99,19 @@ function csv(value: string): string[] {
       >Множественный выбор</el-checkbox>
       <div v-if="variable.type === 'file'" class="mail-variable-file-options">
         <el-input
-          :model-value="(variable.options?.storages ?? []).join(', ')"
-          placeholder="Допустимые хранилища через запятую (необязательно)"
-          @update:model-value="updateOptions(index, { storages: csv($event) })"
+          :model-value="String(variable.options?.disk ?? '')"
+          placeholder="Обязательный код диска"
+          @update:model-value="updateOptions(index, { disk: $event })"
+        />
+        <el-input
+          :model-value="String(variable.options?.virtual_path ?? '')"
+          placeholder="Обязательный виртуальный путь загрузки"
+          @update:model-value="updateOptions(index, { virtual_path: $event })"
+        />
+        <el-input
+          :model-value="String(variable.options?.settings_code ?? '')"
+          placeholder="Обязательный код настроек медиа"
+          @update:model-value="updateOptions(index, { settings_code: $event })"
         />
         <el-input
           :model-value="(variable.options?.mime_types ?? []).join(', ')"

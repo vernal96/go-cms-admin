@@ -85,7 +85,7 @@ const fields: FieldDefinition[] = [
     label: 'Asset',
     required: true,
     validators: [],
-    options: { storages: ['public'], mime_types: ['image/*'] },
+    options: { disk: 'public', virtual_path: 'site/assets', settings_code: 'site_asset', mime_types: ['image/*'] },
   },
 ]
 

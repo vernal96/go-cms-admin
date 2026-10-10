@@ -116,6 +116,37 @@ describe('SiteForm', () => {
 		expect(editWrapper.findComponent({ name: 'TabbedDynamicFieldsForm' }).exists()).toBe(true)
 		expect(editWrapper.findComponent({ name: 'DynamicFieldsForm' }).exists()).toBe(false)
 	})
+
+	it('passes a trusted site upload target for create and edit', async () => {
+		const createWrapper = shallowMount(SiteForm, {
+			props: { accessToken: 'token' },
+			global: { renderStubDefaultSlot: true },
+		})
+		await flushPromises()
+		expect(createWrapper.getComponent({ name: 'DynamicFieldsForm' }).props('fileUploadContext')).toEqual({
+			endpoint: '/api/files/field-uploads',
+			target: { owner: 'site', profile_code: 'dev' },
+		})
+		expect(createWrapper.getComponent({ name: 'DynamicFieldsForm' }).props('siteId')).toBeUndefined()
+
+		const editWrapper = shallowMount(SiteForm, {
+			props: { accessToken: 'token', editing: true, siteId: 11 },
+			global: { renderStubDefaultSlot: true },
+		})
+		await flushPromises()
+		expect(editWrapper.getComponent({ name: 'TabbedDynamicFieldsForm' }).props('siteId')).toBe(11)
+		expect(editWrapper.getComponent({ name: 'TabbedDynamicFieldsForm' }).props('fileUploadContext')).toEqual({
+			endpoint: '/api/files/field-uploads',
+			target: { owner: 'site', site_id: 11, profile_code: 'dev' },
+		})
+
+		const fieldsWrapper = shallowMount(SiteForm, {
+			props: { accessToken: 'token', siteId: 11 },
+			global: { renderStubDefaultSlot: true },
+		})
+		await flushPromises()
+		expect(fieldsWrapper.getComponent({ name: 'DynamicFieldsForm' }).props('siteId')).toBe(11)
+	})
 })
 
 describe('incomplete site settings', () => {

@@ -100,7 +100,8 @@ export interface FieldOptions {
   step?: number
   choices?: FieldChoice[]
   multiple?: boolean
-  storages?: string[]
+  disk?: string
+  virtual_path?: string
   mime_types?: string[]
 }
 
@@ -122,6 +123,13 @@ export interface FilesystemItem {
   size?: number
   item_count?: number
   created_at: string
+  updated_at: string
+}
+
+export interface MediaDetails {
+  id: number
+  file: FilesystemItem
+  editable_image: boolean
   updated_at: string
 }
 

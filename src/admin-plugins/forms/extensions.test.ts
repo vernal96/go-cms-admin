@@ -75,6 +75,19 @@ describe('contributed configuration editors', () => {
   expect((wrapper.vm as unknown as {payload():{config:unknown}}).payload().config).toEqual({level:2})
   wrapper.unmount()
  })
+	it('passes the Forms image-element upload contract into its file field', async () => {
+		const wrapper = mount(FormElementEditor, { props: {
+			disabled: false, initialType: 'image', siteId: 5, formId: 9,
+			availableTypes: [{ code: 'image', label: 'Image', fields: [{ key: 'file', label: 'File', type: 'file', required: true }] }],
+			accessToken: 'token', permissions: new Set<string>(),
+		} })
+		await flushPromises()
+		expect(wrapper.getComponent({ name: 'ConfigurationEditor' }).props('fileUploadContext')).toEqual({
+			endpoint: '/api/sites/5/forms/forms/9/file-fields/uploads',
+			target: { owner: 'element', element_type: 'image' },
+		})
+		wrapper.unmount()
+	})
  it('blocks action save with invalid JSON instead of retaining the previous object',async () => {
   const wrapper=mountAction({nested:{tags:['a']}})
   await flushPromises()

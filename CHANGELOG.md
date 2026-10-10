@@ -2,12 +2,16 @@
 
 ## Unreleased
 
+## 0.5.0
+
 - Compose Font Awesome Solid classes from bare backend icon names in the resource template selector and resource tree. Use `file-lines` when an icon name is empty. Requires the matching kernel icon-name API.
+- Render `file` fields as folder-free tiles with configured-disk selection, trusted-path uploads, single/multiple limits and drag ordering. Add image editing, per-field media metadata, draft removal and confirmed permanent deletion with reference-conflict feedback.
 
 ## 0.4.0
 
 - Show template-preset widgets in each resource widget area at their declared positions. Read-only cards display the widget name and description with subdued styling, while resource widgets keep their editing and drag-and-drop controls.
 - Consume the ordered `widget_areas[].items` metadata from the matching kernel release.
+
 
 ## 0.3.0
 

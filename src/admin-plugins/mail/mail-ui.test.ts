@@ -189,6 +189,10 @@ describe('Mail admin UI', () => {
     wrapper.getComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', 3)
     await flushPromises()
     const dynamic = wrapper.getComponent({ name: 'DynamicFieldsForm' })
+		expect(dynamic.props('fileUploadContext')).toEqual({
+			endpoint: '/api/sites/5/mail/send/templates/3/variables/files',
+			target: {},
+		})
     dynamic.vm.$emit('update:modelValue', { email: 'draft@example.test' })
     await flushPromises()
     const preview = () => wrapper.findAllComponents({ name: 'ElButton' }).find(item => item.text() === 'Предпросмотр')!
