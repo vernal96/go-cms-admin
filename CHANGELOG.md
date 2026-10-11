@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.5.1
+
+- Synchronize the release set; no admin functional changes.
+
 ## 0.5.0
 
 - Compose Font Awesome Solid classes from bare backend icon names in the resource template selector and resource tree. Use `file-lines` when an icon name is empty. Requires the matching kernel icon-name API.
