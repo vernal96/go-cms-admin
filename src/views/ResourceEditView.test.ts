@@ -26,6 +26,7 @@ describe('ResourceEditView schema transitions', () => {
         resource: {
           id: 9,
           site_id: 7,
+          views_total: 47,
           parent_id: null,
           type: 'page',
           template_code: 'page',
@@ -117,6 +118,7 @@ describe('ResourceEditView schema transitions', () => {
       global: { renderStubDefaultSlot: true },
     })
     await flushPromises()
+		expect(wrapper.text()).toContain('Просмотры: 47')
 		expect(wrapper.getComponent({ name: 'TabbedDynamicFieldsForm' }).props('fileUploadContext')).toEqual({
 			endpoint: '/api/files/field-uploads',
 			target: { owner: 'resource', site_id: 7, resource_id: 9, template_code: 'page' },

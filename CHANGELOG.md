@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.6.0
+
+- Show the saved resource view total in the resource and LibraryItem editors, including the shared original total for library mirrors.
+- Read `views_total` from the matching go-cms-kernel v0.9.0 management details without making the statistic editable or changing content versions.
+
 ## 0.5.1
 
 - Synchronize the release set; no admin functional changes.

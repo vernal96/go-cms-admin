@@ -43,6 +43,7 @@ const resourceWidgets = ref<ResourceWidget[]>([])
 const savedTemplateCode = ref<string | null>(null)
 const savedTemplate = computed(() => metadata.value.templates.find((item) => item.code === savedTemplateCode.value) ?? null)
 const resourceVersion = ref(0)
+const viewsTotal = ref(0)
 const ownerLibraryId = ref(0)
 const activeTab = ref('main')
 const form = reactive({ image_media_id: null as number | null, library_id: 0, template_code: null as string | null, title: '', slug: '', annotation: '', content: '', is_public: true, is_searchable: true, published_at: null as Date | null, unpublished_at: null as Date | null, fields: {} as Record<string, unknown> })
@@ -93,6 +94,7 @@ async function load(): Promise<void> {
       const details = await adminRequest<LibraryItemDetailsResponse>(`/api/sites/${siteId.value}/library-items/${itemId.value}`, props.accessToken)
       const item = details.item
       resourceVersion.value = item.version
+      viewsTotal.value = item.views_total ?? 0
       ownerLibraryId.value = item.library_id
       canUpdate.value = details.permissions.update
       canReadHistory.value = details.permissions.history_read
@@ -123,6 +125,7 @@ async function submit(): Promise<void> {
     } else {
       const updated = await adminRequest<LibraryItemDetailsResponse>(`/api/sites/${siteId.value}/library-items/${itemId.value}`, props.accessToken, { method: 'PATCH', body: JSON.stringify(payload) })
       resourceVersion.value = updated.item.version
+      viewsTotal.value = updated.item.views_total ?? 0
       ElMessage.success('Ресурс сохранён')
     }
   } catch (error) { if (!captureValidation(error)) errorMessage.value = error instanceof AdminAPIError ? error.message : 'Не удалось сохранить ресурс.' }
@@ -141,6 +144,7 @@ async function move(): Promise<void> {
     ownerLibraryId.value = moved.item.library_id
     form.library_id = moved.item.library_id
     resourceVersion.value = moved.item.version
+    viewsTotal.value = moved.item.views_total ?? 0
     await router.replace(`/admin/sites/${siteId.value}/resources/${moved.item.library_id}/items/${moved.item.id}/edit`)
     ElMessage.success('Ресурс перемещён')
   } catch (error) {
@@ -156,7 +160,7 @@ watch(() => [route.params.siteId, route.params.resourceId, route.params.itemId],
 
 <template>
   <section class="workspace-page">
-    <header class="page-header"><div><h1>{{ creating ? 'Новый ресурс библиотеки' : (form.title || 'Ресурс библиотеки') }}</h1><p>Ресурс не входит в дерево сайта</p></div><div class="page-header-actions"><el-button v-if="!creating" :loading="moving" :disabled="loading || !canUpdate || form.library_id === ownerLibraryId" @click="move">Переместить</el-button><el-button type="primary" :loading="submitting" :disabled="loading || !canUpdate" @click="submit">Сохранить</el-button></div></header>
+    <header class="page-header"><div><h1>{{ creating ? 'Новый ресурс библиотеки' : (form.title || 'Ресурс библиотеки') }}</h1><p>Ресурс не входит в дерево сайта</p><p v-if="!creating && !loading" class="resource-views">Просмотры: {{ viewsTotal.toLocaleString('ru-RU') }}</p></div><div class="page-header-actions"><el-button v-if="!creating" :loading="moving" :disabled="loading || !canUpdate || form.library_id === ownerLibraryId" @click="move">Переместить</el-button><el-button type="primary" :loading="submitting" :disabled="loading || !canUpdate" @click="submit">Сохранить</el-button></div></header>
     <server-validation-errors :errors="serverFieldErrors" :fields="[{ key: 'title', label: 'Заголовок' }, ...(selectedTemplate?.fields ?? [])]" />
     <el-alert v-if="errorMessage" type="error" :closable="false" :title="errorMessage" />
     <el-alert v-if="moveError" type="error" :closable="false" :title="moveError" />

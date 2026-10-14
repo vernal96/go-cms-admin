@@ -116,7 +116,7 @@ describe('LibraryItemEditView', () => {
       .mockResolvedValueOnce({ items: [{ id: 9, type: 'library', display_title: 'Catalog' }] })
       .mockResolvedValueOnce({ resource: { id: 9, type_settings: {} } })
       .mockResolvedValueOnce({
-        item: { id: 101, library_id: 9, version: 3, template_code: 'article', title: 'Item', slug: 'item', annotation: '', content: '', is_public: true, is_searchable: true, published_at: null, unpublished_at: null, fields: {}, widgets: [] },
+        item: { id: 101, library_id: 9, version: 3, views_total: 123, template_code: 'article', title: 'Item', slug: 'item', annotation: '', content: '', is_public: true, is_searchable: true, published_at: null, unpublished_at: null, fields: {}, widgets: [] },
         permissions: { update: true, history_read: true, history_delete: true },
       })
     const wrapper = shallowMount(LibraryItemEditView, {
@@ -124,6 +124,7 @@ describe('LibraryItemEditView', () => {
       global: { renderStubDefaultSlot: true },
     })
     await flushPromises()
+		expect(wrapper.text()).toContain('Просмотры: 123')
 
     expect(wrapper.getComponent({ name: 'ElTabs' }).props('modelValue')).toBe('main')
 		expect(wrapper.findComponent({ name: 'TabbedDynamicFieldsForm' }).exists()).toBe(false)

@@ -413,6 +413,7 @@ export interface Resource {
 	id: number
 	site_id: number
 	version: number
+	views_total: number
   parent_id: number | null
   type: ResourceTypeCode
   template_code: string | null
@@ -504,6 +505,7 @@ export interface LibraryItem {
   image_media_id?: number | null
 	id: number
 	version: number
+	views_total: number
   site_id: number
   library_id: number
   template_code: string | null

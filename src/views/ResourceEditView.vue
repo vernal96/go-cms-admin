@@ -82,6 +82,7 @@ const savedTemplateCode = ref<string | null>(null)
 const savedTemplate = computed(() => metadata.value.templates.find((item) => item.code === savedTemplateCode.value) ?? null)
 const resourcePath = ref<string | null>(null)
 const resourceVersion = ref(0)
+const viewsTotal = ref(0)
 const canReadHistory = ref(false)
 const canDeleteHistory = ref(false)
 const siteDomain = ref('')
@@ -180,6 +181,7 @@ async function load(): Promise<void> {
     const item = details.resource
 		resourcePath.value = item.path
 		resourceVersion.value = item.version
+		viewsTotal.value = item.views_total ?? 0
     siteDomain.value = loadedSite.site.domain
     deleted.value = item.deleted
     deletedAt.value = item.deleted_at
@@ -376,6 +378,7 @@ async function submit(): Promise<void> {
     )
 		form.slug = response.resource.slug
 		resourceVersion.value = response.resource.version
+		viewsTotal.value = response.resource.views_total ?? 0
     form.position = response.resource.sort + 1
     form.fields = createFieldValues(fields, response.resource.fields)
     document.title = `${response.resource.title} — ${projectName}`
@@ -470,6 +473,7 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
         <h1>{{ form.title || 'Ресурс' }}</h1>
         <p v-if="deleted" class="resource-deleted-caption">Удалён {{ deletedAt ? new Date(deletedAt).toLocaleString() : '' }}</p>
         <p v-else>Редактирование ресурса</p>
+        <p v-if="!loading && !loadError" class="resource-views">Просмотры: {{ viewsTotal.toLocaleString('ru-RU') }}</p>
       </div>
       <div class="page-header-actions">
         <el-button :disabled="!siteDomain" @click="viewResource">Посмотреть</el-button>
