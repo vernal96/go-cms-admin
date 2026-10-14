@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.6.1
+
+- Synchronize the release set with go-cms-kernel v0.10.0. The Redis configuration boundary changes only backend composition; admin behavior is unchanged.
+
 ## 0.6.0
 
 - Show the saved resource view total in the resource and LibraryItem editors, including the shared original total for library mirrors.
