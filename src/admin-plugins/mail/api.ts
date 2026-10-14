@@ -5,6 +5,7 @@ import type {
   MailMessageDetailResponse,
   MailMessageListResponse,
   MailTemplate,
+  MailTemplateDetailsResponse,
   MailTemplateListResponse,
   MailTemplatePayload,
   MailSiteVariablesResponse,
@@ -44,7 +45,7 @@ export function getMailTemplate(
   accessToken: string,
   siteID: number,
   templateID: number,
-): Promise<MailTemplate> {
+): Promise<MailTemplateDetailsResponse> {
   return adminRequest(`${root(siteID)}/templates/${templateID}`, accessToken)
 }
 

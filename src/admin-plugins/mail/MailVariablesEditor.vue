@@ -13,7 +13,7 @@ onBeforeUpdate(() => { validatorEditors.value = [] })
 const types = [
   ['string', 'Строка'], ['email', 'Email'], ['textarea', 'Многострочный текст'],
   ['phone', 'Телефон'], ['int', 'Целое число'], ['float', 'Число'],
-  ['checkbox', 'Флаг'], ['radio', 'Один вариант'], ['select', 'Список'], ['file', 'Файл'],
+  ['checkbox', 'Флаг'], ['radio', 'Один вариант'], ['select', 'Список'], ['media', 'Файл'],
 ] as const
 
 function add(): void {
@@ -46,7 +46,7 @@ defineExpose({ validate })
 function defaultOptions(type: string): FieldOptions | undefined {
   if (type === 'radio') return { choices: [] }
   if (type === 'select') return { choices: [], multiple: false }
-  if (type === 'file') return { disk: '', virtual_path: '', settings_code: '', mime_types: [] }
+  if (type === 'media') return { disk: '', virtual_path: '', settings_code: '', mime_types: [], multiple: false }
   if (type === 'int' || type === 'float' || type === 'phone') return {}
   return undefined
 }
@@ -97,28 +97,37 @@ function csv(value: string): string[] {
         :model-value="Boolean(variable.options?.multiple)"
         @update:model-value="updateOptions(index, { multiple: Boolean($event) })"
       >Множественный выбор</el-checkbox>
-      <div v-if="variable.type === 'file'" class="mail-variable-file-options">
+      <section v-if="variable.type === 'media'" class="mail-variable-file-options" aria-label="Настройки файлового поля">
+        <strong class="mail-variable-file-options-title">Настройки медиа-поля</strong>
         <el-input
           :model-value="String(variable.options?.disk ?? '')"
-          placeholder="Обязательный код диска"
+          placeholder="Диск (обязательно)"
+          aria-label="Диск для загрузки"
           @update:model-value="updateOptions(index, { disk: $event })"
         />
         <el-input
           :model-value="String(variable.options?.virtual_path ?? '')"
-          placeholder="Обязательный виртуальный путь загрузки"
+          placeholder="Виртуальный путь загрузки (обязательно)"
+          aria-label="Путь загрузки"
           @update:model-value="updateOptions(index, { virtual_path: $event })"
         />
         <el-input
           :model-value="String(variable.options?.settings_code ?? '')"
-          placeholder="Обязательный код настроек медиа"
+          placeholder="Код настроек медиа (обязательно)"
+          aria-label="Код настроек медиа"
           @update:model-value="updateOptions(index, { settings_code: $event })"
         />
         <el-input
           :model-value="(variable.options?.mime_types ?? []).join(', ')"
           placeholder="MIME-типы через запятую, например application/pdf,image/*"
+          aria-label="Ограничения MIME-типов"
           @update:model-value="updateOptions(index, { mime_types: csv($event) })"
         />
-      </div>
+        <el-checkbox
+          :model-value="Boolean(variable.options?.multiple)"
+          @update:model-value="updateOptions(index, { multiple: Boolean($event) })"
+        >Несколько файлов</el-checkbox>
+      </section>
     </article>
     <el-button plain :icon="Plus" @click="add">Добавить переменную</el-button>
   </div>
@@ -129,5 +138,6 @@ function csv(value: string): string[] {
 .mail-variable-card { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--el-border-color); border-radius: 8px; }
 .mail-variable-main { display: grid; grid-template-columns: 1fr 1fr 190px auto; gap: 8px; }
 .mail-variable-file-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mail-variable-file-options-title { grid-column: 1 / -1; }
 @media (max-width: 900px) { .mail-variable-main, .mail-variable-file-options { grid-template-columns: 1fr; } }
 </style>

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.7.0
+
+- Use one folder-free `Media` tile field for single and multiple file values across site settings, resources, LibraryItems, templates, widgets, Forms, and Mail. Keep the user avatar control separate. Single selections span the field width; multiple selections support drag ordering.
+- Read trusted upload settings from each Media definition, including the profile-provided resource image and Mail static attachment. Open the disk-restricted file manager for existing files, validate MIME before upload, and expose image editing, per-field metadata, draft removal, and confirmed reference-checked physical deletion from the tile menu.
+
 ## 0.6.1
 
 - Synchronize the release set with go-cms-kernel v0.10.0. The Redis configuration boundary changes only backend composition; admin behavior is unchanged.

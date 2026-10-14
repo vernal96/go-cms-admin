@@ -83,7 +83,6 @@ export type FieldType =
   | 'textarea'
   | 'email'
   | 'phone'
-  | 'file'
   | 'media'
   | 'repeater'
 
@@ -260,6 +259,7 @@ export interface ResourceMetadata {
   templates: ResourceTemplate[]
   widgets: WidgetDefinition[]
   extensions: ResourceExtensionMetadata[]
+  image_field?: FieldDefinition
 }
 
 export type ResourceTypeCode = string

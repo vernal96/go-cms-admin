@@ -13,6 +13,7 @@ import MailMessageDetailView from './MailMessageDetailView.vue'
 import MailSendView from './MailSendView.vue'
 import MailTemplateFormView from './MailTemplateFormView.vue'
 import MailVariablesEditor from './MailVariablesEditor.vue'
+import MediaField from '../../components/fields/MediaField.vue'
 import { createMailTemplate, setMailTemplateEnabled } from './api'
 import type { MailTemplatePayload } from './types'
 
@@ -51,6 +52,61 @@ afterEach(() => {
 })
 
 describe('Mail admin UI', () => {
+  it('configures a Media variable in the template form and saves the media wire contract', async () => {
+    let submitted: MailTemplatePayload | undefined
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/variables')) return response({ items: [], attachment_media_options: { disk: 'private', virtual_path: 'mail/static', settings_code: 'mail_static' } })
+      if (url.endsWith('/validator-types')) return response({ items: [] })
+      if (url.endsWith('/templates') && init?.method === 'POST') {
+        submitted = JSON.parse(String(init.body)) as MailTemplatePayload
+        return response({ id: 1 })
+      }
+      throw new Error(`unexpected request ${url} ${init?.method ?? 'GET'}`)
+    }))
+    const instanceRouter = router()
+    await instanceRouter.push({ name: 'mail.templates.create' })
+    await instanceRouter.isReady()
+    const wrapper = mount(MailTemplateFormView, {
+      props: { accessToken: 'token', permissions },
+      global: { plugins: [instanceRouter], stubs: { RichTextEditor: true } },
+    })
+    await flushPromises()
+
+    const variables = wrapper.getComponent(MailVariablesEditor)
+    variables.getComponent({ name: 'ElButton' }).vm.$emit('click')
+    await wrapper.vm.$nextTick()
+    variables.findComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', 'media')
+    await wrapper.vm.$nextTick()
+    expect(variables.text()).toContain('Настройки медиа-поля')
+
+    const updateVariableInput = async (index: number, value: string) => {
+      variables.findAllComponents({ name: 'ElInput' })[index]!.vm.$emit('update:modelValue', value)
+      await wrapper.vm.$nextTick()
+    }
+    await updateVariableInput(0, 'attachment')
+    await updateVariableInput(1, 'Вложение')
+    await updateVariableInput(2, 'private')
+    await updateVariableInput(3, 'mail/attachments')
+    await updateVariableInput(4, 'mail_attachment')
+    await updateVariableInput(5, 'application/pdf')
+
+    const mainInputs = wrapper.findAllComponents({ name: 'ElInput' })
+    mainInputs[0]?.vm.$emit('update:modelValue', 'media_notice')
+    mainInputs[1]?.vm.$emit('update:modelValue', 'Media notice')
+    wrapper.getComponent(MailAddressFields).vm.$emit('update:modelValue', { name: 'Sender', email: 'sender@example.test' })
+    wrapper.getComponent(MailAddressListEditor).vm.$emit('update:modelValue', [{ name: 'Recipient', email: 'recipient@example.test' }])
+    await flushPromises()
+    wrapper.findAllComponents({ name: 'ElButton' }).find(button => button.text() === 'Сохранить')!.vm.$emit('click')
+    await flushPromises()
+
+    expect(submitted?.variables).toEqual([expect.objectContaining({
+      key: 'attachment', type: 'media', label: 'Вложение',
+      options: { disk: 'private', virtual_path: 'mail/attachments', settings_code: 'mail_attachment', mime_types: ['application/pdf'], multiple: false },
+    })])
+    wrapper.unmount()
+  })
+
   it('isolates arbitrary HTML previews in a sandboxed iframe', () => {
     const wrapper = mount(MailHtmlPreview, { props: { html: '<script>parent.hacked=true</script>', title: undefined } })
     const iframe = wrapper.get('iframe')
@@ -62,8 +118,8 @@ describe('Mail admin UI', () => {
   it('switches the template body editor and exposes compatible variable types', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => response({ items: [
       { variable: 'site.id', label: 'ID сайта', type: 'int', source: 'site' },
-      { variable: 'site.field.contract', label: 'Договор', type: 'file', source: 'site' },
-    ], upload_storage: 'private', upload_path: 'mail/uploads' })))
+			{ variable: 'site.field.contract', label: 'Договор', type: 'media', source: 'site' },
+    ], attachment_media_options: { disk: 'private', virtual_path: 'mail/uploads', settings_code: 'mail_attachment', mime_types: [] } })))
     const instanceRouter = router()
     await instanceRouter.push({ name: 'mail.templates.create' })
     await instanceRouter.isReady()
@@ -73,7 +129,7 @@ describe('Mail admin UI', () => {
     })
     await flushPromises()
     expect(wrapper.findComponent({ name: 'RichTextEditor' }).exists()).toBe(false)
-    expect(wrapper.findComponent(MailAttachmentsEditor).props()).toEqual(expect.objectContaining({ uploadStorage: 'private', uploadPath: 'mail/uploads' }))
+    expect(wrapper.findComponent(MailAttachmentsEditor).props()).toEqual(expect.objectContaining({ attachmentMediaOptions: { disk: 'private', virtual_path: 'mail/uploads', settings_code: 'mail_attachment', mime_types: [] }, uploadContext: { endpoint: '/api/sites/5/mail/attachments/files' } }))
     const contentType = wrapper.findAllComponents({ name: 'ElSelect' }).at(-1)
     contentType?.vm.$emit('update:modelValue', 'html')
     await wrapper.vm.$nextTick()
@@ -92,7 +148,7 @@ describe('Mail admin UI', () => {
     expect(sender.text()).toContain('Email отправителя')
     expect(sender.text()).toContain('Допустимы {{site.*}} и {{data.*}}')
 
-    vi.stubGlobal('fetch', vi.fn(async () => response({ items: [], upload_storage: '', upload_path: '' })))
+    vi.stubGlobal('fetch', vi.fn(async () => response({ items: [], attachment_media_options: { disk: 'private', virtual_path: 'mail/uploads', settings_code: 'mail_attachment', mime_types: [] } })))
     const instanceRouter = router()
     await instanceRouter.push({ name: 'mail.templates.create' })
     await instanceRouter.isReady()
@@ -155,19 +211,26 @@ describe('Mail admin UI', () => {
     expect(wrapper.findComponent({ name: 'ElForm' }).exists()).toBe(false)
   })
 
-  it('reuses the file picker and offers only file variables for variable attachments', () => {
+  it('renders static attachments through Media tiles and offers only media variables for variable attachments', () => {
     const wrapper = shallowMount(MailAttachmentsEditor, {
       props: {
-        modelValue: [{ source: 'variable', variable: '', filename_template: '' }, { source: 'site', variable: '', filename_template: '' }],
+        modelValue: [{ source: 'static', media_id: 9, filename_template: '' }, { source: 'variable', variable: '', filename_template: '' }, { source: 'site', variable: '', filename_template: '' }],
         variables: [
-          { key: 'document', type: 'file', label: 'Документ', required: false, validators: [] },
+			{ key: 'document', type: 'media', label: 'Документ', required: false, validators: [], options: { disk: 'public', virtual_path: 'mail/documents', settings_code: 'document' } },
           { key: 'name', type: 'string', label: 'Имя', required: false, validators: [] },
         ],
-        siteVariables: [{ variable: 'site.field.contract', label: 'Договор', type: 'file', source: 'site' }],
-        accessToken: 'token', permissions,
+        siteVariables: [{ variable: 'site.field.contract', label: 'Договор', type: 'media', source: 'site' }],
+        accessToken: 'token', siteId: 5, attachmentMediaOptions: { disk: 'private', virtual_path: 'mail/uploads', settings_code: 'mail_attachment', mime_types: [] }, uploadContext: { endpoint: '/api/sites/5/mail/attachments/files' },
       },
     })
-    expect(wrapper.findComponent({ name: 'FilePickerDialog' }).exists()).toBe(true)
+    const staticMedia = wrapper.findComponent(MediaField)
+    expect(staticMedia.props()).toEqual(expect.objectContaining({ modelValue: 9, disk: 'private', virtualPath: 'mail/uploads', settingsCode: 'mail_attachment', uploadContext: { endpoint: '/api/sites/5/mail/attachments/files' } }))
+    staticMedia.vm.$emit('update:modelValue', 10)
+    expect(wrapper.emitted('update:modelValue')?.[0]?.[0]).toEqual([
+      { source: 'static', media_id: 10, filename_template: '' },
+      { source: 'variable', variable: '', filename_template: '' },
+      { source: 'site', variable: '', filename_template: '' },
+    ])
     const options = wrapper.findAllComponents({ name: 'ElOption' }).map((item) => item.props('value'))
     expect(options).toContain('data.document')
     expect(options).toContain('site.field.contract')

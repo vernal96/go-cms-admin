@@ -28,7 +28,9 @@ const file = { id: 1, kind: 'file', folder_id: null, source_file_id: null, mime_
 const original = { media_id: 5, current_file: file, original_file: file, expected_updated_at: '2026-09-15T10:00:00Z', transform: null, editable: true, can_restore: false, limits: { output_dimension: 4096, min_quality: 1, max_quality: 100 } }
 const derived = { ...original, current_file: { ...file, id: 2, source_file_id: 1 }, can_restore: true, transform: { crop: { x: crop.x, y: crop.y, width: crop.width, height: crop.height }, rotate: crop.rotate, scale_x: crop.scaleX, scale_y: crop.scaleY, width: 320, height: 0, fit: 'contain', position: 'center', quality: 85 } }
 function response(data: unknown) { return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } }) }
-async function setup(isDerived = false) {
+let viewportWidth = 740
+let viewportHeight = 520
+async function setup(isDerived = false, initiallyOpen = false, emitOpened = true) {
  let state = isDerived ? derived : original
  const fetcher = vi.fn(async (url: string, _init?: RequestInit) => {
   if (url.endsWith('/restore')) { state = original; return response(state) }
@@ -37,18 +39,37 @@ async function setup(isDerived = false) {
  })
  vi.stubGlobal('fetch', fetcher)
  vi.stubGlobal('URL', { ...URL, createObjectURL: vi.fn(() => 'blob:image'), revokeObjectURL: vi.fn() })
- const wrapper = mount(ImageEditor, { props: { modelValue: false, accessToken: 'token', baseUrl: '/api/media/5/image' }, global: { stubs: { teleport: true } } })
- await wrapper.setProps({ modelValue: true }); await flushPromises()
- wrapper.findComponent(ElDialog).vm.$emit('opened'); await flushPromises()
+ const wrapper = mount(ImageEditor, { props: { modelValue: initiallyOpen, accessToken: 'token', baseUrl: '/api/media/5/image' }, global: { stubs: { teleport: true } } })
+ if (!initiallyOpen) await wrapper.setProps({ modelValue: true })
+ await flushPromises()
+ if (emitOpened) wrapper.findComponent(ElDialog).vm.$emit('opened')
+ await flushPromises()
  return { wrapper, fetcher }
 }
 describe('ImageEditor', () => {
  beforeEach(() => {
-  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(740)
-  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(520)
+  viewportWidth = 740; viewportHeight = 520
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => viewportWidth)
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => viewportHeight)
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} unobserve() {} })
  })
  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals() })
+ it('loads and initializes when mounted already open', async () => {
+  const { wrapper, fetcher } = await setup(false, true)
+  expect(fetcher.mock.calls.map(c => c[0])).toContain('/api/media/5/image')
+  expect(fetcher.mock.calls.map(c => c[0])).toContain('/api/files/1/preview')
+  expect(wrapper.find('img[alt="Оригинал для редактирования"]').exists()).toBe(true)
+  expect(wrapper.findAll('button').find(b => b.text() === '↷ 90°')!.attributes('disabled')).toBeUndefined()
+  wrapper.unmount()
+ })
+ it('initializes after the dialog opens if image loading began with a zero-sized viewport', async () => {
+  viewportWidth = 0; viewportHeight = 0
+  const { wrapper } = await setup(false, false, false)
+  viewportWidth = 740; viewportHeight = 520
+  wrapper.findComponent(ElDialog).vm.$emit('opened'); await flushPromises()
+  expect(wrapper.findAll('button').find(b => b.text() === '↷ 90°')!.attributes('disabled')).toBeUndefined()
+  wrapper.unmount()
+ })
  it('opens the saved image alongside the root source and submits transform data', async () => {
   const { wrapper, fetcher } = await setup(true)
   expect(fetcher.mock.calls.map(c => c[0])).toContain('/api/files/1/preview')

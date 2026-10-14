@@ -78,7 +78,7 @@ describe('contributed configuration editors', () => {
 	it('passes the Forms image-element upload contract into its file field', async () => {
 		const wrapper = mount(FormElementEditor, { props: {
 			disabled: false, initialType: 'image', siteId: 5, formId: 9,
-			availableTypes: [{ code: 'image', label: 'Image', fields: [{ key: 'file', label: 'File', type: 'file', required: true }] }],
+			availableTypes: [{ code: 'image', label: 'Image', fields: [{ key: 'file', label: 'File', type: 'media', required: true, options: { disk: 'public', virtual_path: 'forms/images', settings_code: 'form_image' } }] }],
 			accessToken: 'token', permissions: new Set<string>(),
 		} })
 		await flushPromises()

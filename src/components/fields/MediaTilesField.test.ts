@@ -2,7 +2,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
-import FileField from './FileField.vue'
+import MediaField from './MediaField.vue'
 import FilePickerDialog from '../files/FilePickerDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ImageEditor from '../images/ImageEditor.vue'
@@ -15,7 +15,7 @@ const item = (id: number, name = `file-${id}.png`) => ({
 })
 const props = { disk: 'public', virtualPath: 'site/logo', settingsCode: 'site_logo', modelValue: null as unknown }
 const uploadContext = { endpoint: '/api/files/field-uploads', target: { owner: 'site', profile_code: 'ministry' } }
-const mountField = (overrides = {}) => mount(FileField, {
+const mountField = (overrides = {}) => mount(MediaField, {
   props: { ...props, ...overrides },
   global: { provide: {
     [adminAccessTokenKey as symbol]: ref('token'),
@@ -40,7 +40,7 @@ it('creates a distinct Media value after choosing a file and scopes the manager 
 })
 
 it('hides server-backed actions when the matching Media permissions are missing', async () => {
-  const wrapper = mount(FileField, {
+  const wrapper = mount(MediaField, {
     props,
     global: { provide: {
       [adminAccessTokenKey as symbol]: ref('token'),
@@ -58,7 +58,7 @@ it('does not offer physical deletion without both file and Media delete permissi
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
     id: 9, file, editable_image: false, updated_at: '2026-10-09T12:00:00Z',
   }))))
-  const wrapper = mount(FileField, {
+  const wrapper = mount(MediaField, {
     props: { ...props, siteId: 8, modelValue: 9 },
     global: { provide: {
       [adminAccessTokenKey as symbol]: ref('token'),
@@ -143,6 +143,26 @@ it('uploads accepted MIME files using the owner-scoped endpoint and field path',
   expect(body.get('file')).toBeInstanceOf(File)
   expect(calls[1]![0]).toBe('/api/media')
   expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([42])
+  wrapper.unmount()
+})
+
+it('uploads mail attachment media without sending a field target and stores the new Media ID', async () => {
+  const calls: Array<[string, RequestInit?]> = []
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push([url, init])
+    if (url === '/api/sites/5/mail/attachments/files') return new Response(JSON.stringify(item(51)))
+    if (url === '/api/media') return new Response(JSON.stringify({ id: 52 }))
+    return new Response(JSON.stringify({}))
+  }))
+  const wrapper = mountField({ siteId: 5, accessToken: 'token', uploadContext: { endpoint: '/api/sites/5/mail/attachments/files' } })
+  const input = wrapper.find('input[type="file"]')
+  Object.defineProperty(input.element, 'files', { configurable: true, value: [new File(['bytes'], 'attachment.png', { type: 'image/png' })] })
+  await input.trigger('change')
+  await flushPromises()
+  expect(calls[0]?.[0]).toBe('/api/sites/5/mail/attachments/files')
+  expect((calls[0]?.[1]?.body as FormData).has('target')).toBe(false)
+  expect(calls[1]?.[0]).toBe('/api/media')
+  expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([52])
   wrapper.unmount()
 })
 

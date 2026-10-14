@@ -41,7 +41,7 @@ describe('multiple standard fields', () => {
     expect(wrapper.findComponent(ElFormItem).props('error')).toBe('Ошибка значения')
     wrapper.unmount()
   })
-  it.each(['string', 'textarea', 'email', 'phone', 'int', 'float', 'file', 'media', 'select', 'example.text'])('initializes %s as an array', type => {
+  it.each(['string', 'textarea', 'email', 'phone', 'int', 'float', 'media', 'select', 'example.text'])('initializes %s as an array', type => {
     expect(createFieldValues([{ ...field, type }])).toEqual({ items: [] })
   })
   it('validates count, elements, numeric zero and nested paths', () => {
@@ -64,17 +64,15 @@ describe('multiple standard fields', () => {
     wrapper.unmount()
   })
 
-  it('uses the image editor for each item in a multiple Media field', () => {
+  it('uses one shared ordered tile editor for a multiple Media field', () => {
     const definition: FieldDefinition = {
       key: 'gallery', type: 'media', label: 'Галерея', required: false, validators: [], options: { multiple: true },
     }
     const wrapper = mount(DynamicField, { props: { field: definition, modelValue: [11, 12], siteId: 7, accessToken: 'token' } })
-    const fields = wrapper.findAllComponents({ name: 'MediaImageField' })
-    expect(fields).toHaveLength(2)
-    expect(fields.map(field => field.props())).toEqual([
-      expect.objectContaining({ modelValue: 11, siteId: 7, accessToken: 'token' }),
-      expect.objectContaining({ modelValue: 12, siteId: 7, accessToken: 'token' }),
-    ])
+    const field = wrapper.findComponent({ name: 'MediaField' })
+    expect(field.exists()).toBe(true)
+    expect(field.props()).toEqual(expect.objectContaining({ modelValue: [11, 12], multiple: true, siteId: 7 }))
+    expect(wrapper.find('.multiple-field').exists()).toBe(false)
     wrapper.unmount()
   })
 })

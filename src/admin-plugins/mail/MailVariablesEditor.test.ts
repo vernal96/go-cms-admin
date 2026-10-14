@@ -8,6 +8,47 @@ const available: ValidatorMetadata[] = [{ code: 'min', label: 'Минимум', 
 const variable = (key: string, invalid = false): FieldDefinition => ({ key, label: key, type: 'int', required: false, validators: invalid ? [{ type: 'min', options: {} }] : [] })
 
 describe('Mail variable editor validation lifecycle', () => {
+ it('shows Media configuration after selecting File and emits complete media options', async () => {
+  let current: FieldDefinition[] = [{ key: 'attachment', type: 'string', label: 'Вложение', required: false, validators: [] }]
+  let wrapper: ReturnType<typeof mount>
+  wrapper = mount(MailVariablesEditor, {
+   props: {
+    modelValue: current,
+    'onUpdate:modelValue': (value: FieldDefinition[]) => {
+     current = value
+     void wrapper.setProps({ modelValue: value })
+    },
+   },
+  })
+
+  wrapper.findComponent({ name: 'ElSelect' }).vm.$emit('update:modelValue', 'media')
+  await wrapper.vm.$nextTick()
+  expect(wrapper.text()).toContain('Настройки медиа-поля')
+  expect(wrapper.findAllComponents({ name: 'ElInput' })).toHaveLength(6)
+  const updateInput = async (index: number, value: string) => {
+   wrapper.findAllComponents({ name: 'ElInput' })[index]!.vm.$emit('update:modelValue', value)
+   await wrapper.vm.$nextTick()
+  }
+  await updateInput(2, 'public')
+  await updateInput(3, 'mail/attachments')
+  await updateInput(4, 'mail_attachment')
+  await updateInput(5, 'application/pdf,image/*')
+  wrapper.findAllComponents({ name: 'ElCheckbox' })[1]!.vm.$emit('update:modelValue', true)
+  await wrapper.vm.$nextTick()
+
+  expect(current[0]).toMatchObject({
+   type: 'media',
+   options: {
+    disk: 'public',
+    virtual_path: 'mail/attachments',
+    settings_code: 'mail_attachment',
+    mime_types: ['application/pdf', 'image/*'],
+    multiple: true,
+   },
+  })
+  wrapper.unmount()
+ })
+
  it.each([0, 1])('stops validating deleted variable at index %i', async (index) => {
   const variables = [variable('first'), variable('second')]
   variables[index] = variable('invalid', true)

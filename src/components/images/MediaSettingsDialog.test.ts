@@ -64,13 +64,17 @@ it('ignores a late response after switching Media', async () => {
  wrapper.unmount()
 })
 it.each([false, true])('passes the named settings and site through media lists (multiple=%s)', async multiple => {
- vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ editable: false, current_file: { id: 1 } }))))
- vi.stubGlobal('URL', { createObjectURL: () => 'blob:test', revokeObjectURL: vi.fn() })
+ vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+  const id = Number(url.match(/\/api\/media\/(\d+)$/)?.[1] ?? 0)
+  return new Response(JSON.stringify({ id, file: { id: 100 + id, kind: 'file', name: `photo-${id}.pdf`, mime_type: 'application/pdf' }, editable_image: false, updated_at: 'v1' }))
+ }))
  const wrapper = mount(DynamicField, { props: { field: { key: 'photo', label: 'Photo', type: 'media', required: false, validators: [], options: { settings_code: 'image', multiple } }, siteId: 2, accessToken: 'token', modelValue: multiple ? [7, 8] : 7 }, global: { stubs: { FilePickerDialog: true, ImageEditor: true, MediaSettingsDialog: true }, provide: { [adminPermissionsKey as symbol]: ref(new Set(['core.media.read', 'core.media.update'])) } } })
  await flushPromises()
- const buttons = wrapper.findAll('button').filter(b => b.text() === 'Настройки')
- expect(buttons).toHaveLength(multiple ? 2 : 1)
- await buttons.at(-1)!.trigger('click')
+ const tiles = wrapper.findAll('.file-field-tile')
+ expect(tiles).toHaveLength(multiple ? 2 : 1)
+ await tiles.at(-1)!.trigger('contextmenu')
+ const button = wrapper.findAll('.file-context-menu button').find(item => item.text() === 'Мета данные')!
+ await button.trigger('click')
  const dialog = wrapper.findComponent(MediaSettingsDialog)
  expect(dialog.props('mediaId')).toBe(multiple ? 8 : 7)
  expect(dialog.props('siteId')).toBe(2)

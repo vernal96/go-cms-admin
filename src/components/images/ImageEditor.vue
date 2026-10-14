@@ -23,6 +23,7 @@ const preserve = ref(true)
 const positions = [{v:'center',l:'Центр'},{v:'top',l:'Сверху'},{v:'bottom',l:'Снизу'},{v:'left',l:'Слева'},{v:'right',l:'Справа'},{v:'top-left',l:'Слева сверху'},{v:'top-right',l:'Справа сверху'},{v:'bottom-left',l:'Слева снизу'},{v:'bottom-right',l:'Справа снизу'}]
 const options = reactive(defaultTransform())
 let cropper: Cropper | null = null
+let cropperLoaded = false
 let generation = 0
 let pendingView: { data: Cropper.Data; zoom: number } | null = null
 let viewportSize: Size | null = null
@@ -32,12 +33,12 @@ function dispose() {
   generation++
   resizeObserver?.disconnect(); resizeObserver = null
   editorReady.value = false; pendingView = null; stageSize.value = null; viewportSize = null
-  cropper?.destroy(); cropper = null
+  cropper?.destroy(); cropper = null; cropperLoaded = false
   for (const url of [source.value, current.value]) if (url) URL.revokeObjectURL(url)
   source.value = ''; current.value = ''
 }
 onBeforeUnmount(dispose)
-watch(visible, (value) => { if (value) void open(); else dispose() })
+watch(visible, (value) => { if (value) void open(); else dispose() }, { immediate: true })
 async function open() {
   dispose(); const version = generation
   error.value = ''; busy.value = true
@@ -77,6 +78,7 @@ function initializeCropper() {
     minContainerWidth: 1, minContainerHeight: 1,
     ready() {
       if (generation !== version || !cropper) return
+      cropperLoaded = true
       if (pendingView) {
         void applyView(pendingView.data, pendingView.zoom)
         return
@@ -114,7 +116,7 @@ async function applyView(data: Cropper.Data, zoom: number) {
     // already loaded; no API request or image re-encoding is involved.
     pendingView = { data, zoom }
     stageSize.value = view.stage
-    cropper.destroy(); cropper = null
+    cropper.destroy(); cropper = null; cropperLoaded = false
     const version = generation
     await nextTick()
     if (generation === version) initializeCropper()
@@ -127,6 +129,20 @@ async function applyView(data: Cropper.Data, zoom: number) {
   cropper.setData(data)
   pendingView = null
   editorReady.value = true
+}
+function onDialogOpened() {
+  if (!cropper) {
+    initializeCropper()
+    return
+  }
+  // The image may finish loading during the dialog transition, before its
+  // viewport has a measurable size. Re-apply the initial view once opened.
+  if (cropperLoaded && state.value && !editorReady.value) {
+    const transform = state.value.transform
+    const data = { ...cropper.getData(), rotate: transform?.rotate ?? 0, scaleX: transform?.scale_x ?? 1, scaleY: transform?.scale_y ?? 1 }
+    Object.assign(data, transform?.crop ?? { x: 0, y: 0, ...transformedSize(data) })
+    void applyView(data, 1)
+  }
 }
 function rotate(angle: 90 | -90) {
   if (!cropper || !editorReady.value) return
@@ -176,7 +192,7 @@ async function restore() {
 }
 </script>
 <template>
-  <el-dialog v-model="visible" title="Редактор изображения" width="min(1080px, 95vw)" :close-on-click-modal="false" :close-on-press-escape="!busy" :show-close="!busy" @opened="initializeCropper">
+  <el-dialog v-model="visible" title="Редактор изображения" width="min(1080px, 95vw)" :close-on-click-modal="false" :close-on-press-escape="!busy" :show-close="!busy" @opened="onDialogOpened">
     <el-alert v-if="error" type="error" :title="error" :closable="false" />
     <div class="image-editor-layout">
       <div ref="viewport" class="image-editor-canvas"><div class="image-editor-stage" :style="stageSize ? { width: `${stageSize.width}px`, height: `${stageSize.height}px` } : undefined"><img v-if="source" ref="img" :src="source" alt="Оригинал для редактирования" /></div></div>

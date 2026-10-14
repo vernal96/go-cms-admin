@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import LibraryItemEditView from './LibraryItemEditView.vue'
+import MediaField from '../components/fields/MediaField.vue'
 
 const replaceMock = vi.fn()
 const routeParams: { siteId: string; resourceId: string; itemId?: string } = { siteId: '7', resourceId: '9' }
@@ -28,7 +29,7 @@ describe('LibraryItemEditView', () => {
 
   it('preserves rejected values, shows a summary and leaves local validation inline', async () => {
     requestMock
-      .mockResolvedValueOnce({ types: [], templates: [{ code: 'article', label: 'Article', fields: [
+      .mockResolvedValueOnce({ types: [], image_field: { key: 'image_media_id', type: 'media', label: 'Изображение', required: false, validators: [], options: { disk: 'public', virtual_path: 'site/resources/images', settings_code: 'resource_image', mime_types: ['image/jpeg', 'image/png'] } }, templates: [{ code: 'article', label: 'Article', fields: [
         { key: 'name', type: 'string', label: 'Название', required: true, validators: [] },
       ], supports_resource_widgets: false }], widgets: [], extensions: [] })
       .mockResolvedValueOnce({ items: [{ id: 9, type: 'library', display_title: 'Catalog' }] })
@@ -38,6 +39,7 @@ describe('LibraryItemEditView', () => {
       props: { accessToken: 'token' }, global: { renderStubDefaultSlot: true },
     })
     await flushPromises()
+    expect(wrapper.findComponent(MediaField).props()).toEqual(expect.objectContaining({ disk: 'public', virtualPath: 'site/resources/images', settingsCode: 'resource_image', mimeTypes: ['image/jpeg', 'image/png'], siteId: 7, referencePath: ['image_media_id'], uploadContext: { endpoint: '/api/files/field-uploads', target: { owner: 'resource_image', site_id: 7 } } }))
     const model = wrapper.getComponent({ name: 'ElForm' }).props('model')
     Object.assign(model, { title: 'Item', fields: { name: 'draft' } })
     const save = () => wrapper.findAllComponents({ name: 'ElButton' }).find(item => item.text() === 'Сохранить')!
@@ -58,7 +60,7 @@ describe('LibraryItemEditView', () => {
       .mockResolvedValueOnce({
         types: [{ code: 'library', label: 'Библиотека', capabilities: { owns_library_items: true } }],
         templates: [{ code: 'article', label: 'Article', fields: [
-			{ key: 'document', type: 'file', label: 'Document', required: false, validators: [] },
+			{ key: 'document', type: 'media', label: 'Document', required: false, validators: [], options: { disk: 'public', virtual_path: 'site/docs', settings_code: 'document' } },
 		], supports_resource_widgets: false }],
         widgets: [], extensions: [],
       })

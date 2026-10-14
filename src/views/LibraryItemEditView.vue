@@ -9,7 +9,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import DynamicFieldsForm from '../components/fields/DynamicFieldsForm.vue'
 import type { FileUploadContext } from '../components/fields/file-upload-context'
-import MediaImageField from '../components/images/MediaImageField.vue'
+import MediaField from '../components/fields/MediaField.vue'
 import RichTextEditor from '../components/RichTextEditor.vue'
 import ResourceExtensionEditor from '../components/resource-extensions/ResourceExtensionEditor.vue'
 import ResourceWidgetsEditor from '../components/resource-widgets/ResourceWidgetsEditor.vue'
@@ -52,6 +52,10 @@ const fileUploadContext = computed<FileUploadContext | undefined>(() => form.tem
   endpoint: '/api/files/field-uploads',
   target: { owner: 'resource', site_id: siteId.value, ...(itemId.value ? { resource_id: itemId.value } : {}), template_code: form.template_code },
 } : undefined)
+const imageUploadContext = computed<FileUploadContext>(() => ({
+  endpoint: '/api/files/field-uploads',
+  target: { owner: 'resource_image', site_id: siteId.value, ...(itemId.value ? { resource_id: itemId.value } : {}) },
+}))
 const applicableExtensions = computed(() => metadata.value.extensions.filter((extension) => extension.applies_to.includes('page')))
 const showWidgetsTab = computed(() => !creating.value && selectedTemplate.value?.supports_resource_widgets === true)
 const showFieldsTab = computed(() => (selectedTemplate.value?.fields.length ?? 0) > 0)
@@ -171,7 +175,7 @@ watch(() => [route.params.siteId, route.params.resourceId, route.params.itemId],
           <div class="resource-main-grid">
             <div class="resource-main-primary">
               <el-form-item label="Название" required><el-input v-model="form.title" :disabled="!canUpdate" /></el-form-item>
-              <el-form-item label="Изображение"><media-image-field v-model="form.image_media_id" :access-token="accessToken" :disabled="!canUpdate" /></el-form-item>
+              <el-form-item v-if="metadata.image_field" label="Изображение"><media-field v-model="form.image_media_id" :disk="metadata.image_field.options?.disk ?? ''" :virtual-path="metadata.image_field.options?.virtual_path ?? ''" :settings-code="metadata.image_field.options?.settings_code ?? ''" :mime-types="metadata.image_field.options?.mime_types" :site-id="siteId" :access-token="accessToken" :resource-templates="metadata.templates" :disabled="!canUpdate" :upload-context="imageUploadContext" :reference-path="['image_media_id']" /></el-form-item>
  <el-form-item label="Аннотация"><el-input v-model="form.annotation" type="textarea" :rows="7" :disabled="!canUpdate" /></el-form-item>
             </div>
             <div class="resource-main-secondary">

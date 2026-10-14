@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { ElButton, ElFormItem } from 'element-plus'
 import type { FieldDefinition } from '../../types/admin'
+import type { FileUploadContext } from './file-upload-context'
 import DynamicField from './DynamicField.vue'
 import { createFieldValues, singleValueField, validatorNumber, type DynamicFieldErrors } from './model'
 
@@ -13,11 +14,14 @@ const props = defineProps<{
   siteId?: number
   accessToken?: string
   resourceTemplates?: Array<{ code: string; label: string }>
+  fileUploadContext?: FileUploadContext
+  referencePath?: string[]
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: unknown[]] }>()
 const items = computed<unknown[]>(() => Array.isArray(props.modelValue) ? props.modelValue : [])
 const itemField = computed(() => singleValueField(props.field))
 const path = computed(() => props.fieldPath ?? props.field.key)
+const referencePath = computed(() => props.referencePath ?? [props.field.key])
 const maximum = computed(() => validatorNumber(props.field, 'max_items'))
 const minimum = computed(() => Math.max(props.field.required ? 1 : 0, validatorNumber(props.field, 'min_items')))
 let nextID = 0
@@ -60,7 +64,7 @@ function update(index: number, value: unknown) {
         <el-button type="danger" plain :disabled="items.length <= minimum" :aria-label="`Удалить значение ${index + 1}`" @click="remove(index)">Удалить</el-button>
       </div>
       <el-form-item :error="errors?.[`${path}[${index}]`]">
-        <dynamic-field :field="itemField" :model-value="item" :errors="errors" :field-path="`${path}[${index}]`"
+        <dynamic-field :field="itemField" :model-value="item" :errors="errors" :field-path="`${path}[${index}]`" :reference-path="[...referencePath, String(index)]" :file-upload-context="fileUploadContext"
           :site-id="siteId" :access-token="accessToken" :resource-templates="resourceTemplates"
           @update:model-value="update(index, $event)" />
       </el-form-item>

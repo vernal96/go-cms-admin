@@ -151,7 +151,7 @@ describe('SiteForm', () => {
 
 describe('incomplete site settings', () => {
   const fields = [
-    { key: 'logo', type: 'file', label: 'Logo', required: true, validators: [] },
+    { key: 'logo', type: 'media', label: 'Logo', required: true, validators: [], options: { disk: 'public', virtual_path: 'site/logo', settings_code: 'site_logo' } },
     { key: 'title', type: 'string', label: 'Title', required: false, validators: [] },
     { key: 'tags', type: 'string', label: 'Tags', required: false, options: { multiple: true }, validators: [{ type: 'min_items', options: { value: 2 } }] },
     { key: 'enabled', type: 'checkbox', label: 'Enabled', required: true, validators: [] },

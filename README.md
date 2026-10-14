@@ -98,15 +98,16 @@ Local checks remain attached to individual fields. Server validation failures ar
 
 The existing `error.details.fields` API remains unchanged. The UI retains each original key, code and parameter object separately from display text, so field highlighting can be added later. When the server reports validation failure without field details (including some Forms/Mail operations), the summary asks the user to check their values without exposing the internal server message. Errors clear before retrying or switching editors; rejected values remain in the draft.
 
-## File fields
+## Media file fields
 
-Dynamic `file` fields use the file manager's tile presentation and hide folders.
+Dynamic `media` fields use the file manager's tile presentation and hide folders.
 Each selected value is a distinct Media ID and may refer to any file type
 allowed by the field's MIME constraints; image editing is available only for
 supported image formats.
-The field definition supplies a disk, a virtual upload path and a media-settings
-code; optional MIME patterns are checked before upload in the UI and again by
-the backend when values are saved. The virtual path is the destination for new
+The field definition supplies `disk`, `virtual_path` and `settings_code`; optional
+`mime_types` patterns are checked before upload in the UI and again by the
+backend when values are saved. `multiple` selects a single Media ID or an ordered
+list. The virtual path is the destination for new
 uploads. Existing files can be selected from any folder on the configured disk.
 Tile uploads use an owner-scoped endpoint. The UI sends only the owner identity,
 the structured field path and the file; it never sends a disk or folder. The
@@ -122,7 +123,10 @@ the file after confirmation. Ordinary removal takes effect when the owning form
 is saved. Permanent deletion acts immediately and can be rejected while another
 reference exists; the UI reports when byte cleanup is still pending and polls
 the operation status. Forms results and other protected references prevent
-physical deletion.
+physical deletion. The resource image uses the profile's
+`Settings.FileSystem.ResourceImage` options; the user avatar remains a separate
+specialized control.
 
-The backend contract, including response statuses and reference conflicts, is
-documented in [Core's file-field deletion guide](https://github.com/vernal96/go-cms-kernel/blob/main/docs/modules/core/file-field-deletion.md).
+Mail variable fields and fixed template attachments use the same Media tile
+control. The backend contract, including response statuses and reference
+conflicts, is documented in [Core's file-field deletion guide](https://github.com/vernal96/go-cms-kernel/blob/main/docs/modules/core/file-field-deletion.md).

@@ -1,4 +1,4 @@
-import type { FieldDefinition, Pagination } from '../../types/admin'
+import type { FieldDefinition, FieldOptions, Pagination } from '../../types/admin'
 
 export type MailContentType = 'text' | 'html'
 export type MailAttachmentSource = 'static' | 'variable' | 'site'
@@ -11,7 +11,7 @@ export interface MailAddressTemplate {
 
 export interface MailAttachmentTemplate {
   source: MailAttachmentSource
-  file_id?: number
+  media_id?: number
   variable?: string
   filename_template: string
 }
@@ -70,8 +70,11 @@ export interface MailSiteVariable {
 
 export interface MailSiteVariablesResponse {
   items: MailSiteVariable[]
-  upload_storage: string
-  upload_path: string
+  attachment_media_options: FieldOptions
+}
+
+export interface MailTemplateDetailsResponse extends MailTemplate {
+  attachment_media_options: FieldOptions
 }
 
 export interface MailWarning {

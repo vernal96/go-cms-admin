@@ -81,7 +81,7 @@ const fields: FieldDefinition[] = [
   },
   {
     key: 'asset',
-    type: 'file',
+    type: 'media',
     label: 'Asset',
     required: true,
     validators: [],

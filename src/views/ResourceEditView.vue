@@ -29,7 +29,7 @@ import { AdminAPIError, adminRequest, adminRequestVoid } from '../api/admin-api'
 import DynamicFieldsForm from '../components/fields/DynamicFieldsForm.vue'
 import TabbedDynamicFieldsForm from '../components/fields/TabbedDynamicFieldsForm.vue'
 import type { FileUploadContext } from '../components/fields/file-upload-context'
-import MediaImageField from '../components/images/MediaImageField.vue'
+import MediaField from '../components/fields/MediaField.vue'
 import RichTextEditor from '../components/RichTextEditor.vue'
 import ResourceExtensionEditor from '../components/resource-extensions/ResourceExtensionEditor.vue'
 import ResourceWidgetsEditor from '../components/resource-widgets/ResourceWidgetsEditor.vue'
@@ -121,6 +121,10 @@ const selectedTemplate = computed(() =>
 const fileUploadContext = computed<FileUploadContext>(() => ({
   endpoint: '/api/files/field-uploads',
   target: { owner: 'resource', site_id: siteId.value, resource_id: resourceId.value, ...(selectedTemplate.value?.code ? { template_code: selectedTemplate.value.code } : {}) },
+}))
+const imageUploadContext = computed<FileUploadContext>(() => ({
+  endpoint: '/api/files/field-uploads',
+  target: { owner: 'resource_image', site_id: siteId.value, resource_id: resourceId.value },
 }))
 const selectedType = computed(() => metadata.value.types.find((item) => item.code === form.type) ?? null)
 const settingsFields = computed(() => selectedType.value?.settings_fields ?? [])
@@ -496,7 +500,7 @@ watch(() => [route.params.siteId, route.params.resourceId], () => void load())
               <el-form-item label="Аннотация (введение)"><el-input v-model="form.annotation" type="textarea" :rows="7" :disabled="!canUpdate" /></el-form-item>
             </div>
             <div class="resource-main-secondary">
-              <el-form-item label="Изображение"><media-image-field v-model="form.image_media_id" :access-token="accessToken" :disabled="!canUpdate || deleted" /></el-form-item>
+              <el-form-item v-if="metadata.image_field" label="Изображение"><media-field v-model="form.image_media_id" :disk="metadata.image_field.options?.disk ?? ''" :virtual-path="metadata.image_field.options?.virtual_path ?? ''" :settings-code="metadata.image_field.options?.settings_code ?? ''" :mime-types="metadata.image_field.options?.mime_types" :site-id="siteId" :access-token="accessToken" :resource-templates="metadata.templates" :disabled="!canUpdate || deleted" :upload-context="imageUploadContext" :reference-path="['image_media_id']" /></el-form-item>
               <el-form-item v-if="supportsTemplate" label="Шаблон">
                 <el-select :model-value="templateSelection" class="full-width" :disabled="!canUpdate" @change="changeTemplate">
                   <el-option label="(без шаблона)" :value="noTemplateValue" />

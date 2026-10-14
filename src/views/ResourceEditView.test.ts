@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import ResourceEditView from './ResourceEditView.vue'
+import MediaField from '../components/fields/MediaField.vue'
 
 vi.mock('../api/admin-api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/admin-api')>()),
@@ -106,6 +107,7 @@ describe('ResourceEditView schema transitions', () => {
         ],
 			widgets: [],
 			extensions: [],
+        image_field: { key: 'image_media_id', type: 'media', label: 'Изображение', required: false, validators: [], options: { disk: 'public', virtual_path: 'site/resources/images', settings_code: 'resource_image', mime_types: ['image/jpeg', 'image/png'] } },
       })
       .mockResolvedValueOnce({ items: [] })
       .mockResolvedValueOnce({ site: { id: 7, domain: 'example.com' }, permissions: { read: true, create: true, update: true, delete: true } })
@@ -123,6 +125,7 @@ describe('ResourceEditView schema transitions', () => {
 			endpoint: '/api/files/field-uploads',
 			target: { owner: 'resource', site_id: 7, resource_id: 9, template_code: 'page' },
 		})
+    expect(wrapper.findComponent(MediaField).props()).toEqual(expect.objectContaining({ disk: 'public', virtualPath: 'site/resources/images', settingsCode: 'resource_image', mimeTypes: ['image/jpeg', 'image/png'], siteId: 7, referencePath: ['image_media_id'], uploadContext: { endpoint: '/api/files/field-uploads', target: { owner: 'resource_image', site_id: 7, resource_id: 9 } } }))
     expect(wrapper.findAllComponents({ name: 'ResourceIcon' }).map(icon => icon.props('icon'))).toEqual(['document', 'document'])
     const errors = [{ key: 'page_title', code: 'regex' }]
     requestMock.mockRejectedValueOnce(new AdminAPIError(422, 'validation_failed', 'request data is invalid', errors))

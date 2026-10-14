@@ -14,6 +14,7 @@ import MailAddressListEditor from './MailAddressListEditor.vue'
 import MailAttachmentsEditor from './MailAttachmentsEditor.vue'
 import MailVariablesEditor from './MailVariablesEditor.vue'
 import type { MailSiteVariable, MailTemplate, MailTemplatePayload } from './types'
+import type { FieldOptions } from '../../types/admin'
 
 const props = defineProps<{ accessToken: string; permissions: ReadonlySet<string> }>()
 const emit = defineEmits<{ unauthorized: [] }>()
@@ -28,8 +29,7 @@ const replyToEnabled = ref(false)
 const siteVariables = ref<MailSiteVariable[]>([])
 const validatorTypes = ref<ValidatorMetadata[]>([])
 const variablesEditor = ref<{ validate(): void }>()
-const uploadStorage = ref('')
-const uploadPath = ref('')
+const attachmentMediaOptions = ref<FieldOptions>()
 const selectedPlaceholder = ref('')
 const form = reactive<MailTemplatePayload>(emptyTemplate())
 const addressErrors = reactive({
@@ -82,10 +82,12 @@ async function load(): Promise<void> {
     const [editor, validators] = await Promise.all([listMailSiteVariables(props.accessToken, siteID), listMailValidatorTypes(props.accessToken, siteID)])
     validatorTypes.value = validators.items
     siteVariables.value = editor.items
-    uploadStorage.value = editor.upload_storage
-    uploadPath.value = editor.upload_path
-    if (editing.value) assignTemplate(await getMailTemplate(props.accessToken, siteID, templateID.value))
-    else assignTemplate({ ...emptyTemplate(), id: 0, site_id: siteID, created_at: '', updated_at: '' })
+    attachmentMediaOptions.value = editor.attachment_media_options
+    if (editing.value) {
+      const template = await getMailTemplate(props.accessToken, siteID, templateID.value)
+      attachmentMediaOptions.value = template.attachment_media_options
+      assignTemplate(template)
+    } else assignTemplate({ ...emptyTemplate(), id: 0, site_id: siteID, created_at: '', updated_at: '' })
   } catch (caught) {
     handleError(caught)
   } finally { loading.value = false }
@@ -122,7 +124,7 @@ function validate(): string | null {
     keys.add(variable.key)
   }
   for (const attachment of form.attachments) {
-    if (attachment.source === 'static' && !attachment.file_id) return 'Выберите файл для каждого статического вложения.'
+    if (attachment.source === 'static' && (!attachment.media_id || !Number.isInteger(attachment.media_id) || attachment.media_id < 1)) return 'Выберите файл для каждого статического вложения.'
     if (attachment.source === 'variable' && !attachment.variable) return 'Выберите файловую переменную для каждого переменного вложения.'
     if (attachment.source === 'site' && !attachment.variable) return 'Выберите файловое поле сайта для каждого вложения из настроек сайта.'
   }
@@ -244,7 +246,7 @@ onMounted(() => void load())
       </el-card>
 
       <el-card shadow="never" header="Вложения">
-        <mail-attachments-editor v-model="form.attachments" :variables="form.variables" :site-variables="siteVariables" :access-token="accessToken" :permissions="permissions" :upload-storage="uploadStorage" :upload-path="uploadPath" />
+        <mail-attachments-editor v-model="form.attachments" :variables="form.variables" :site-variables="siteVariables" :access-token="accessToken" :site-id="selected.selectedSite.value?.id ?? 0" :attachment-media-options="attachmentMediaOptions" :upload-context="selected.selectedSite.value?.id ? { endpoint: `/api/sites/${selected.selectedSite.value.id}/mail/attachments/files` } : undefined" />
       </el-card>
     </el-form>
   </section>

@@ -14,8 +14,6 @@ import type { ImageState } from '../images/image-api'
 
 interface MediaTile {
   id: number
-  file_id?: number
-  file?: FilesystemItem
   item?: FilesystemItem
   image?: ImageState
   preview?: string
@@ -31,13 +29,15 @@ const props = withDefaults(defineProps<{
   settingsCode: string
   mimeTypes?: string[]
   multiple?: boolean
+  disabled?: boolean
+  accessToken?: string
   siteId?: number
   resourceTemplates?: Array<{ code: string; label: string }>
   uploadContext?: FileUploadContext
   referencePath?: string[]
-}>(), { mimeTypes: () => [], multiple: false })
+}>(), { mimeTypes: () => [], multiple: false, disabled: false })
 const model = defineModel<unknown>()
-const accessToken = inject(adminAccessTokenKey)
+const injectedAccessToken = inject(adminAccessTokenKey)
 const permissions = inject(adminPermissionsKey)
 const pickerVisible = ref(false)
 const uploadInput = ref<HTMLInputElement>()
@@ -56,17 +56,17 @@ const mediaIDs = computed<number[]>(() => {
   const values = props.multiple ? (Array.isArray(model.value) ? model.value : []) : [model.value]
   return values.filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value > 0)
 })
-const canRead = computed(() => !!accessToken?.value && !!permissions?.value.has('core.file.read') && !!permissions?.value.has('core.media.read'))
-const canChoose = computed(() => canRead.value && !!permissions?.value.has('core.media.create'))
+const token = computed(() => props.accessToken || injectedAccessToken?.value || '')
+const canRead = computed(() => !!token.value && !!permissions?.value.has('core.file.read') && !!permissions?.value.has('core.media.read'))
+const canChoose = computed(() => !props.disabled && canRead.value && !!permissions?.value.has('core.media.create'))
 const canUpload = computed(() => canChoose.value && !!permissions?.value.has('core.file.create') && !!props.uploadContext)
-const canEdit = computed(() => !!permissions?.value.has('core.media.update') && !!permissions?.value.has('core.file.create'))
-const canConfigure = computed(() => !!permissions?.value.has('core.media.read') && !!permissions?.value.has('core.media.update'))
-const canDelete = computed(() => !!permissions?.value.has('core.file.delete') && !!permissions?.value.has('core.media.delete'))
-const token = computed(() => accessToken?.value ?? '')
+const canEdit = computed(() => !props.disabled && !!permissions?.value.has('core.media.update') && !!permissions?.value.has('core.file.create'))
+const canConfigure = computed(() => !props.disabled && !!permissions?.value.has('core.media.read') && !!permissions?.value.has('core.media.update'))
+const canDelete = computed(() => !props.disabled && !!props.siteId && !!permissions?.value.has('core.file.delete') && !!permissions?.value.has('core.media.delete'))
 const accept = computed(() => props.mimeTypes.join(','))
 const pickerPermissions = computed(() => permissions?.value ?? new Set<string>())
 
-watch(() => [mediaIDs.value.join(','), accessToken?.value], () => { void loadTiles() }, { immediate: true })
+watch(() => [mediaIDs.value.join(','), token.value], () => { void loadTiles() }, { immediate: true })
 onBeforeUnmount(() => { generation++; clearPreviews() })
 
 async function loadTiles(): Promise<void> {
@@ -75,14 +75,14 @@ async function loadTiles(): Promise<void> {
   const ids = [...mediaIDs.value]
   const loaded = await Promise.all(ids.map(async (id) => {
     const tile: MediaTile = { id, item: selectedFiles.get(id) }
-    if (!accessToken?.value) return tile
+    if (!token.value) return tile
     try {
-      const media = await adminRequest<MediaDetails>(`/api/media/${id}`, accessToken.value)
+      const media = await adminRequest<MediaDetails>(`/api/media/${id}`, token.value)
       tile.item = media.file
       tile.editable = media.editable_image
       tile.updatedAt = media.updated_at
       if (isRaster(media.file.mime_type)) {
-        const blob = await adminBlob(`/api/files/${media.file.id}/thumbnail?width=128&height=128&fit=contain`, accessToken.value)
+        const blob = await adminBlob(`/api/files/${media.file.id}/thumbnail?width=128&height=128&fit=contain`, token.value)
         tile.preview = URL.createObjectURL(blob)
       }
     } catch {
@@ -104,7 +104,7 @@ async function chooseMany(items: FilesystemItem[]): Promise<void> {
   await createMedia(items)
 }
 async function createMedia(items: FilesystemItem[]): Promise<void> {
-  if (!accessToken?.value) return
+  if (!token.value) return
   const existing = props.multiple ? [...mediaIDs.value] : []
   const selected = props.multiple ? items : items.slice(0, 1)
   for (const item of selected) {
@@ -113,7 +113,7 @@ async function createMedia(items: FilesystemItem[]): Promise<void> {
       continue
     }
     try {
-      const media = await adminRequest<{ id: number }>('/api/media', accessToken.value, {
+      const media = await adminRequest<{ id: number }>('/api/media', token.value, {
         method: 'POST', body: JSON.stringify({ file_id: item.id }),
       })
       selectedFiles.set(media.id, item)
@@ -128,7 +128,7 @@ async function createMedia(items: FilesystemItem[]): Promise<void> {
 }
 
 async function upload(files: FileList | null): Promise<void> {
-  if (!files?.length || !accessToken?.value || !props.uploadContext) return
+  if (!files?.length || !token.value || !props.uploadContext) return
   const selected = props.multiple ? [...files] : [...files].slice(0, 1)
   const valid = selected.filter((file) => {
     if (matchesMime(file.type)) return true
@@ -140,9 +140,10 @@ async function upload(files: FileList | null): Promise<void> {
     const created: FilesystemItem[] = []
     for (const file of valid) {
       const body = new FormData()
-      body.set('target', JSON.stringify(targetForFileUpload(props.uploadContext, props.referencePath ?? [])))
+      const target = targetForFileUpload(props.uploadContext, props.referencePath ?? [])
+      if (target) body.set('target', JSON.stringify(target))
       body.set('file', file, file.name)
-      try { created.push(await adminUpload<FilesystemItem>(props.uploadContext.endpoint, accessToken.value, body)) }
+      try { created.push(await adminUpload<FilesystemItem>(props.uploadContext.endpoint, token.value, body)) }
       catch (error) { ElMessage.error(error instanceof Error ? error.message : `Не удалось загрузить «${file.name}».`); break }
     }
     if (created.length) await createMedia(created)
@@ -175,6 +176,7 @@ function reorder(target: number): void {
 }
 function beginContext(event: MouseEvent, tile: MediaTile): void {
   event.preventDefault()
+  if (props.disabled) return
   context.value = { tile, x: event.clientX, y: event.clientY }
 }
 function closeContext(): void { context.value = undefined }
@@ -192,7 +194,7 @@ function updateTile(state: ImageState): void {
 }
 
 async function deletePermanently(tile: MediaTile): Promise<void> {
-  if (!props.siteId || !accessToken?.value || !tile.item || !tile.updatedAt) {
+  if (!props.siteId || !token.value || !tile.item || !tile.updatedAt) {
     ElMessage.error('Не удалось загрузить актуальные данные медиа для безопасного удаления.')
     return
   }
@@ -202,7 +204,7 @@ async function deletePermanently(tile: MediaTile): Promise<void> {
       `Файл «${tile.item.name}» будет удалён физически, если сервер подтвердит, что у него нет других ссылок. Продолжить?`,
       'Удалить файл совсем', { confirmButtonText: 'Удалить совсем', cancelButtonText: 'Отмена', type: 'warning', confirmButtonClass: 'el-button--danger' },
     )
-    const result = await adminRequest<DeleteFileResult>(endpoint, accessToken.value, {
+    const result = await adminRequest<DeleteFileResult>(endpoint, token.value, {
       method: 'POST', body: JSON.stringify({ expected_file_id: tile.item.id, expected_updated_at: tile.updatedAt }),
     })
     if (result.status === 'completed') completeDelete(tile)
@@ -224,11 +226,11 @@ function completeDelete(tile: MediaTile): void {
 
 async function pollDelete(tile: MediaTile): Promise<void> {
   const operation = pendingDeletes.value[tile.id]
-  if (!operation || operation.polling || !accessToken?.value) return
+  if (!operation || operation.polling || !token.value) return
   operation.polling = true
   try {
     for (let attempt = 0; attempt < 20; attempt++) {
-      const status = await adminRequest<DeleteFileStatus>(operation.statusUrl, accessToken.value)
+      const status = await adminRequest<DeleteFileStatus>(operation.statusUrl, token.value)
       if (status.status === 'completed') { completeDelete(tile); return }
       await new Promise(resolve => window.setTimeout(resolve, 1000))
     }
@@ -257,9 +259,9 @@ async function confirmDelete(tile: MediaTile): Promise<void> {
 </script>
 
 <template>
-  <div class="file-field">
+  <div class="media-field">
     <div v-if="tiles.length" class="file-field-grid" :class="{ 'is-multiple': multiple }">
-      <button v-for="(tile, index) in tiles" :key="tile.id" type="button" class="file-tile file-field-tile"
+      <button v-for="(tile, index) in tiles" :key="tile.id" type="button" class="file-tile file-field-tile media-field-tile"
         :class="{ 'is-drag-source': dragging === index }" :draggable="multiple" :aria-disabled="!canChoose" @click="openPicker"
         @contextmenu="beginContext($event, tile)" @dragstart="dragging = index" @dragover.prevent @drop.prevent="reorder(index)" @dragend="dragging = undefined">
         <span v-if="multiple" class="file-drag-handle" draggable="false" :title="`Перетащить «${tile.item?.name ?? tile.id}»`"><Rank /></span>
@@ -270,10 +272,10 @@ async function confirmDelete(tile: MediaTile): Promise<void> {
       </button>
     </div>
     <el-empty v-else-if="multiple" description="Файлы не выбраны" :image-size="48" />
-    <div class="file-field-actions">
+    <div class="media-field-actions">
       <el-button :icon="FolderOpened" :disabled="!canChoose" @click="openPicker">Выбрать файл</el-button>
       <el-button :icon="Upload" :disabled="!canUpload" @click="uploadInput?.click()">Загрузить</el-button>
-      <el-button v-if="!multiple && mediaIDs.length" :icon="Delete" title="Убрать значение" @click="model = null">Убрать</el-button>
+      <el-button v-if="!multiple && mediaIDs.length" :icon="Delete" title="Убрать значение" :disabled="disabled" @click="model = null">Убрать</el-button>
     </div>
     <input ref="uploadInput" hidden type="file" :multiple="multiple" :accept="accept" @change="upload(($event.target as HTMLInputElement).files)" />
     <file-picker-dialog v-if="token && permissions" v-model="pickerVisible" :access-token="token"
@@ -291,11 +293,11 @@ async function confirmDelete(tile: MediaTile): Promise<void> {
 </template>
 
 <style scoped>
-.file-field { display: grid; width: 100%; gap: 10px; }
+.media-field { display: grid; width: 100%; gap: 10px; }
 .file-field-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .file-field-grid.is-multiple { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
-.file-field-tile { width: 100%; cursor: pointer; }
-.file-field-actions { display:flex; gap:8px; flex-wrap:wrap; }
-.file-field-actions .el-button { margin:0; }
-.file-field :deep(.el-empty) { padding: 12px 0; }
+.media-field-tile { width: 100%; cursor: pointer; }
+.media-field-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.media-field-actions .el-button { margin:0; }
+.media-field :deep(.el-empty) { padding: 12px 0; }
 </style>
