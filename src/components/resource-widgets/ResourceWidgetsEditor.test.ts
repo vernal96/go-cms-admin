@@ -118,6 +118,38 @@ describe('ResourceWidgetsEditor drag and drop', () => {
     wrapper.unmount()
   })
 
+  it('sends one create request for rapid saves and closes after the successful response', async () => {
+    let resolveRequest: ((value: ResourceWidget) => void) | undefined
+    requestMock.mockImplementationOnce(() => new Promise((resolve) => { resolveRequest = resolve }))
+    const fieldsDefinition: WidgetDefinition = {
+      ...definition,
+      code: 'core_resource_fields',
+      label: 'Поля ресурса',
+      fields: [{ key: 'fields', type: 'string', label: 'Поля', required: true, validators: [], options: { multiple: true }, editor: 'template-field-picker' }],
+    }
+    const wrapper = mountEditor([], true, { definitions: [fieldsDefinition] })
+    wrapper.getComponent({ name: 'WidgetPickerDialog' }).vm.$emit('select', fieldsDefinition)
+    await flushPromises()
+
+    const dialog = wrapper.getComponent({ name: 'WidgetSettingsDialog' })
+    const payload = { view: 'default', columns: 12, margin_top: 0, margin_bottom: 0, enabled: true, params: { fields: ['gallery'] }, param_bindings: {} }
+    dialog.vm.$emit('save', payload)
+    dialog.vm.$emit('save', payload)
+
+    expect(requestMock).toHaveBeenCalledTimes(1)
+    expect(JSON.parse(String(requestMock.mock.calls[0]?.[2]?.body))).toMatchObject({
+      code: 'core_resource_fields',
+      params: { fields: ['gallery'] },
+    })
+
+    resolveRequest?.({ ...widget(101, 'body', 0), code: 'core_resource_fields', params: { fields: ['gallery'] } })
+    await flushPromises()
+
+    expect(dialog.props('modelValue')).toBe(false)
+    expect(wrapper.emitted('changed')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('starts only from the handle and highlights the exact empty-area target', async () => {
     const wrapper = mountEditor([widget(41, 'body', 0)])
     const transfer = dragTransfer()

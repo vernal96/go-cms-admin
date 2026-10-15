@@ -35,7 +35,7 @@ const emit = defineEmits<{
 const pickerOpen = ref(false)
 const settingsOpen = ref(false)
 const saving = ref(false)
-const { errors: serverFieldErrors, clear: clearValidation, capture: captureValidation } = useServerValidation()
+const { errors: serverFieldErrors, message: serverMessage, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const pendingArea = ref<WidgetArea>('default')
 const selectedDefinition = ref<WidgetDefinition | null>(null)
 const editingWidget = ref<ResourceWidget | null>(null)
@@ -123,7 +123,7 @@ function edit(value: ResourceWidget): void {
 }
 
 async function save(value: WidgetSettingsValue): Promise<void> {
-  if (!selectedDefinition.value) return
+  if (!selectedDefinition.value || saving.value) return
   clearValidation()
   saving.value = true
   try {
@@ -143,8 +143,8 @@ async function save(value: WidgetSettingsValue): Promise<void> {
       ? props.modelValue.map((widget) => widget.id === saved.id ? saved : widget)
       : [...props.modelValue, saved]
 	emit('update:modelValue', normalizeWidgetPositions(current))
-	emit('changed')
     settingsOpen.value = false
+	emit('changed')
     ElMessage.success(editingWidget.value ? 'Виджет обновлён' : 'Виджет добавлен')
   } catch (error) {
     if (!captureValidation(error)) handleError(error, 'Не удалось сохранить виджет.')
@@ -338,6 +338,7 @@ function handleError(error: unknown, fallback: string): void {
     <widget-settings-dialog
       v-model="settingsOpen"
       :definition="selectedDefinition"
+      :template-fields="template.fields"
       :sources="template.widget_value_sources"
       :widget="editingWidget"
       :site-id="siteId"
@@ -345,6 +346,7 @@ function handleError(error: unknown, fallback: string): void {
 			:access-token="accessToken"
       :saving="saving"
       :server-errors="serverFieldErrors"
+      :server-message="serverMessage"
       @clear-validation="clearValidation"
       @save="save"
     />

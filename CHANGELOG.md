@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.8.0
+
+- Add a template-field picker for the Core `core_resource_fields` widget. It shows only fields from the current resource template, preserves unavailable saved keys for repair, and prevents empty or invalid selections.
+- Keep the widget save button accessible while selecting multiple fields, prevent duplicate submissions, and close the dialog before refreshing resource details.
+- Requires go-cms-kernel v0.13.0 for the widget definition and validation contract.
+
 ## 0.7.1
 
 - Synchronize the release set with go-cms-kernel v0.12.0. Console password input changed in the backend; admin functionality is unchanged.

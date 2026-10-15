@@ -37,3 +37,39 @@ it('keeps dependent editors available when the visibility controller is resolved
   expect(editor.props('fields')[0].key).toBe('detail')
   expect(editor.props('fields')[0].visible_when).toBeUndefined()
 })
+
+it('selects any current template field by label and key without offering a literal or binding mode', async () => {
+  const wrapper = shallowMount(WidgetParamFields, {
+    props: {
+      fields: [{ key: 'fields', label: 'Поля', type: 'string', editor: 'template-field-picker', required: true, validators: [], options: { multiple: true } }],
+      templateFields: [
+        { key: 'title', label: 'Название', type: 'string', required: false, validators: [] },
+        { key: 'gallery', label: 'Галерея', type: 'media', required: false, validators: [] },
+      ],
+      modelValue: { fields: ['title'] }, bindings: {}, errors: {}, siteId: 7, accessToken: 'token',
+      paramTypes: { fields: { type: 'string', multiple: true } }, sources: [],
+    }, global: { renderStubDefaultSlot: true },
+  })
+
+  expect(wrapper.findComponent({ name: 'ElRadioGroup' }).exists()).toBe(false)
+  expect(wrapper.findComponent({ name: 'DynamicFieldsForm' }).exists()).toBe(false)
+  const select = wrapper.getComponent({ name: 'ElSelect' })
+  expect(select.props()).toMatchObject({ multiple: true, disabled: false, placement: 'top-start' })
+  expect(wrapper.findAllComponents({ name: 'ElOption' }).map((option) => option.props('label'))).toEqual([
+    'Название (title)', 'Галерея (gallery)',
+  ])
+  select.vm.$emit('update:modelValue', ['title', 'gallery'])
+  expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([{ fields: ['title', 'gallery'] }])
+})
+
+it('explains and disables the picker when the current template has no fields', () => {
+  const wrapper = shallowMount(WidgetParamFields, {
+    props: {
+      fields: [{ key: 'fields', label: 'Поля', type: 'string', editor: 'template-field-picker', required: true, validators: [], options: { multiple: true } }],
+      templateFields: [], modelValue: {}, bindings: {}, errors: {}, siteId: 7, accessToken: 'token',
+      paramTypes: {}, sources: [],
+    }, global: { renderStubDefaultSlot: true },
+  })
+  expect(wrapper.getComponent({ name: 'ElAlert' }).props('title')).toContain('Добавьте поля в шаблон')
+  expect(wrapper.getComponent({ name: 'ElSelect' }).props('disabled')).toBe(true)
+})

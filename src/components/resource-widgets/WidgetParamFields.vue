@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { ElFormItem, ElOption, ElRadioButton, ElRadioGroup, ElSelect } from 'element-plus'
+import { ElAlert, ElFormItem, ElOption, ElRadioButton, ElRadioGroup, ElSelect } from 'element-plus'
 import DynamicFieldsForm from '../fields/DynamicFieldsForm.vue'
 import { createFieldValues, type DynamicFieldErrors } from '../fields/model'
 import type { FieldDefinition, WidgetParamBinding, WidgetValueShape, WidgetValueSource } from '../../types/admin'
 import type { FileUploadContext } from '../fields/file-upload-context'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   fields: FieldDefinition[]
+  templateFields?: FieldDefinition[]
   modelValue: Record<string, unknown>
   bindings: Record<string, WidgetParamBinding>
   sources: WidgetValueSource[]
@@ -16,7 +17,7 @@ const props = defineProps<{
   siteId: number
   accessToken: string
   fileUploadContext?: FileUploadContext
-}>()
+}>(), { templateFields: () => [] })
 const emit = defineEmits<{
   'update:modelValue': [value: Record<string, unknown>]
   'update:bindings': [value: Record<string, WidgetParamBinding>]
@@ -45,10 +46,41 @@ function setSource(key: string, id: unknown): void {
   const source = sourcesFor(key).find((item) => sourceId(item) === id)
   if (source) emit('update:bindings', { ...props.bindings, [key]: { kind: source.kind, key: source.key } })
 }
+function setTemplateFields(key: string, value: unknown): void {
+  const selected = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  emit('update:modelValue', { ...props.modelValue, [key]: selected })
+}
+function selectedTemplateFieldKeys(key: string): string[] {
+  const value = props.modelValue[key]
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
 </script>
 
 <template>
   <div v-for="field in visibleFields" :key="field.key" class="widget-param-field">
+    <el-form-item v-if="field.editor === 'template-field-picker'" :label="field.label" required :error="errors[field.key]">
+      <el-alert v-if="!templateFields.length" type="info" :closable="false" title="В текущем шаблоне нет полей. Добавьте поля в шаблон, чтобы настроить этот виджет." />
+      <el-select
+        :model-value="selectedTemplateFieldKeys(field.key)"
+        class="full-width"
+        multiple
+        filterable
+        clearable
+        placement="top-start"
+        :disabled="!templateFields.length"
+        placeholder="Выберите поля шаблона"
+        @update:model-value="setTemplateFields(field.key, $event)"
+      >
+        <el-option v-for="templateField in templateFields" :key="templateField.key" :value="templateField.key" :label="`${templateField.label} (${templateField.key})`" />
+        <el-option
+          v-for="key in selectedTemplateFieldKeys(field.key).filter((value) => !templateFields.some((item) => item.key === value))"
+          :key="`stale:${key}`"
+          :value="key"
+          :label="`${key} (поле недоступно в шаблоне)`"
+        />
+      </el-select>
+    </el-form-item>
+    <template v-else>
     <el-radio-group :model-value="bindings[field.key] ? 'source' : 'literal'" :aria-label="`Источник: ${field.label}`" size="small" @update:model-value="setMode(field, $event)">
       <el-radio-button value="literal">Значение</el-radio-button>
       <el-radio-button value="source" :disabled="!bindings[field.key] && !sourcesFor(field.key).length">Поле ресурса</el-radio-button>
@@ -59,6 +91,7 @@ function setSource(key: string, id: unknown): void {
       </el-select>
     </el-form-item>
     <dynamic-fields-form v-else :model-value="modelValue" :fields="[{ ...field, visible_when: undefined }]" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" @update:model-value="emit('update:modelValue', $event)" />
+    </template>
   </div>
 </template>
 

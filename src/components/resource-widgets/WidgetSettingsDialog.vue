@@ -20,15 +20,16 @@ import {
 } from 'element-plus'
 import WidgetParamFields from './WidgetParamFields.vue'
 import { createFieldValues,   type DynamicFieldErrors } from '../fields/model'
-import type { ResourceWidget, WidgetDefinition, WidgetValueSource } from '../../types/admin'
+import type { FieldDefinition, ResourceWidget, WidgetDefinition, WidgetValueSource } from '../../types/admin'
 import type { FileUploadContext } from '../fields/file-upload-context'
 import type { WidgetSettingsValue } from './model'
 
 const { unsupportedFieldTypes, validateFieldValues } = useFieldValidation()
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: boolean
   definition: WidgetDefinition | null
+  templateFields?: FieldDefinition[]
   widget: ResourceWidget | null
   sources: WidgetValueSource[]
 		siteId: number
@@ -36,7 +37,8 @@ const props = defineProps<{
 		accessToken: string
   saving?: boolean
   serverErrors?: FieldValidationError[] | null
-}>()
+  serverMessage?: string | null
+}>(), { templateFields: () => [] })
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   save: [value: WidgetSettingsValue]
@@ -50,7 +52,9 @@ const form = reactive<WidgetSettingsValue>({
 const errors = ref<DynamicFieldErrors>({})
 const activeTab = ref('')
 const literalFields = computed(() => (props.definition?.fields ?? []).filter((field) => !Object.hasOwn(form.param_bindings, field.key)))
-const unsupported = computed(() => unsupportedFieldTypes(literalFields.value))
+const genericLiteralFields = computed(() => literalFields.value.filter((field) => field.editor !== 'template-field-picker'))
+const unsupported = computed(() => unsupportedFieldTypes(genericLiteralFields.value))
+const templateFieldsUnavailable = computed(() => Boolean(props.definition?.fields.some((field) => field.editor === 'template-field-picker') && !props.templateFields.length))
 const tabs = computed(() => props.definition?.editor_tabs ?? [])
 const fileUploadContext = computed<FileUploadContext | undefined>(() => props.definition ? {
   endpoint: '/api/files/field-uploads',
@@ -74,7 +78,10 @@ watch(() => [props.modelValue, props.definition, props.widget] as const, ([open]
     params: createFieldValues(props.definition.fields, widget?.params ?? {}),
     param_bindings: JSON.parse(JSON.stringify(widget?.param_bindings ?? {})),
   })
-  for (const key of Object.keys(form.param_bindings)) delete form.params[key]
+  for (const key of Object.keys(form.param_bindings)) {
+    const field = props.definition.fields.find((item) => item.key === key)
+    if (field?.editor !== 'template-field-picker') delete form.params[key]
+  }
   errors.value = {}
   selectAvailableTab()
 }, { immediate: true })
@@ -89,7 +96,18 @@ function fieldsForTab(codes: string[]) {
 function save(): void {
   emit('clearValidation')
   if (!props.definition || unsupported.value.length) return
-  errors.value = validateFieldValues(literalFields.value, form.params)
+  errors.value = validateFieldValues(genericLiteralFields.value, form.params)
+  for (const field of props.definition.fields.filter((item) => item.editor === 'template-field-picker')) {
+    const selected = form.params[field.key]
+    const keys = Array.isArray(selected) ? selected : []
+    if (Object.hasOwn(form.param_bindings, field.key)) errors.value[field.key] = 'Для этого параметра нельзя выбрать источник значения'
+    else if (keys.length === 0) errors.value[field.key] = 'Выберите хотя бы одно поле шаблона'
+    else if (new Set(keys).size !== keys.length) errors.value[field.key] = 'Поле шаблона выбрано несколько раз'
+    else {
+      const stale = keys.filter((key) => typeof key !== 'string' || !props.templateFields.some((templateField) => templateField.key === key))
+      if (stale.length) errors.value[field.key] = `Недоступные поля шаблона: ${stale.join(', ')}`
+    }
+  }
   for (const [key, binding] of Object.entries(form.param_bindings)) {
     const shape = props.definition.param_types[key]
     if (!props.sources.some((source) => source.kind === binding.kind && source.key === binding.key && source.type === shape?.type && source.multiple === shape?.multiple)) errors.value[key] = 'Выберите совместимое поле ресурса'
@@ -114,7 +132,7 @@ function save(): void {
     width="min(840px, calc(100vw - 32px))"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <server-validation-errors :errors="serverErrors" :fields="definition?.fields ?? []" />
+    <server-validation-errors :errors="serverErrors" :message="serverMessage" :fields="definition?.fields ?? []" />
     <el-alert v-if="unsupported.length" type="error" :closable="false" :title="`Неизвестные типы полей: ${unsupported.join(', ')}`" />
     <el-form v-if="definition" label-position="top">
       <div class="widget-presentation-grid">
@@ -142,14 +160,14 @@ function save(): void {
 
       <el-tabs v-if="tabs.length" v-model="activeTab">
         <el-tab-pane v-for="tab in tabs" :key="tab.code" :label="tab.label" :name="tab.code">
-				<widget-param-fields v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="fieldsForTab(tab.fields)" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
+				<widget-param-fields v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="fieldsForTab(tab.fields)" :template-fields="templateFields" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
         </el-tab-pane>
       </el-tabs>
-			<widget-param-fields v-else v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="definition.fields" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
+			<widget-param-fields v-else v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="definition.fields" :template-fields="templateFields" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
     </el-form>
     <template #footer>
       <el-button @click="emit('update:modelValue', false)">Отмена</el-button>
-      <el-button type="primary" :loading="saving" :disabled="unsupported.length > 0" @click="save">Сохранить</el-button>
+      <el-button type="primary" :loading="saving" :disabled="unsupported.length > 0 || templateFieldsUnavailable" @click="save">Сохранить</el-button>
     </template>
   </el-dialog>
 </template>
