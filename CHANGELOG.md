@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.7.1
+
+- Synchronize the release set with go-cms-kernel v0.12.0. Console password input changed in the backend; admin functionality is unchanged.
+
 ## 0.7.0
 
 - Use one folder-free `Media` tile field for single and multiple file values across site settings, resources, LibraryItems, templates, widgets, Forms, and Mail. Keep the user avatar control separate. Single selections span the field width; multiple selections support drag ordering.
