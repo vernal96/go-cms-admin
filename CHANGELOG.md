@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.8.1
+
+- Synchronize the release set with go-cms-kernel v0.14.0. Public resource breadcrumbs are a backend API addition; admin functionality is unchanged.
+
 ## 0.8.0
 
 - Add a template-field picker for the Core `core_resource_fields` widget. It shows only fields from the current resource template, preserves unavailable saved keys for repair, and prevents empty or invalid selections.
