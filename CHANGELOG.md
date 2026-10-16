@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.8.2
+
+- Synchronize the release set with go-cms-kernel v0.15.0. The site publication flag now controls anonymous access to published site content without global guest grants; admin functionality is unchanged.
+
 ## 0.8.1
 
 - Synchronize the release set with go-cms-kernel v0.14.0. Public resource breadcrumbs are a backend API addition; admin functionality is unchanged.
