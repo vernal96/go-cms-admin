@@ -38,11 +38,11 @@ describe('SiteForm', () => {
   it('shows server errors both in the summary and under fields', async () => {
     const errors = [{ key: 'title', code: 'regex', params: { value: '^ok$' } }]
     const wrapper = shallowMount(SiteForm, {
-      props: { accessToken: 'token', fieldErrors: errors },
+      props: { accessToken: 'token', editing: true, fieldErrors: errors },
       global: { renderStubDefaultSlot: true },
     })
     await flushPromises()
-    const dynamic = wrapper.getComponent({ name: 'DynamicFieldsForm' })
+    const dynamic = wrapper.getComponent({ name: 'TabbedDynamicFieldsForm' })
     expect(dynamic.props('errors')).toEqual({ title: 'Значение не соответствует требуемому формату.' })
     expect(wrapper.getComponent({ name: 'ServerValidationErrors' }).props('errors')).toEqual(errors)
     const form = wrapper.getComponent({ name: 'ElForm' })
@@ -55,7 +55,7 @@ describe('SiteForm', () => {
     wrapper.unmount()
   })
 
-  it('initializes and submits settings from profile metadata', async () => {
+  it('creates a site with only the five basic fields', async () => {
     const wrapper = shallowMount(SiteForm, {
       props: { accessToken: 'token' },
       global: { renderStubDefaultSlot: true },
@@ -70,7 +70,7 @@ describe('SiteForm', () => {
       profile_code: 'dev',
       locale: ' ru-RU ',
       is_public: true,
-      settings: { title: 'Demo' },
+      settings: { title: 'ignored during create' },
     })
     formComponent.vm.$emit('submit', new Event('submit'))
     await flushPromises()
@@ -81,7 +81,6 @@ describe('SiteForm', () => {
       profile_code: 'dev',
       locale: 'ru-RU',
       is_public: true,
-      settings: { title: 'Demo' },
     })
   })
 
@@ -99,14 +98,26 @@ describe('SiteForm', () => {
     expect(wrapper.getComponent({ name: 'ElAlert' }).props('title')).toContain('Заполните название')
   })
 
-	it('uses tabbed settings only while editing a site', async () => {
+  it('shows a create domain conflict on the domain field', async () => {
+    const wrapper = shallowMount(SiteForm, {
+      props: { accessToken: 'token', domainError: 'Домен уже используется' },
+      global: { renderStubDefaultSlot: true },
+    })
+    await flushPromises()
+    const domain = wrapper.findAllComponents({ name: 'ElFormItem' })
+      .find((item) => item.props('label') === 'Домен')
+    expect(domain?.props('error')).toBe('Домен уже используется')
+    wrapper.unmount()
+  })
+
+	it('shows profile fields only while editing a site', async () => {
 		const createWrapper = shallowMount(SiteForm, {
 			props: { accessToken: 'token' },
 			global: { renderStubDefaultSlot: true },
 		})
 		await flushPromises()
 		expect(createWrapper.findComponent({ name: 'TabbedDynamicFieldsForm' }).exists()).toBe(false)
-		expect(createWrapper.findComponent({ name: 'DynamicFieldsForm' }).exists()).toBe(true)
+		expect(createWrapper.findComponent({ name: 'DynamicFieldsForm' }).exists()).toBe(false)
 
 		const editWrapper = shallowMount(SiteForm, {
 			props: { accessToken: 'token', editing: true },
@@ -117,18 +128,7 @@ describe('SiteForm', () => {
 		expect(editWrapper.findComponent({ name: 'DynamicFieldsForm' }).exists()).toBe(false)
 	})
 
-	it('passes a trusted site upload target for create and edit', async () => {
-		const createWrapper = shallowMount(SiteForm, {
-			props: { accessToken: 'token' },
-			global: { renderStubDefaultSlot: true },
-		})
-		await flushPromises()
-		expect(createWrapper.getComponent({ name: 'DynamicFieldsForm' }).props('fileUploadContext')).toEqual({
-			endpoint: '/api/files/field-uploads',
-			target: { owner: 'site', profile_code: 'dev' },
-		})
-		expect(createWrapper.getComponent({ name: 'DynamicFieldsForm' }).props('siteId')).toBeUndefined()
-
+	it('passes a trusted site upload target while editing', async () => {
 		const editWrapper = shallowMount(SiteForm, {
 			props: { accessToken: 'token', editing: true, siteId: 11 },
 			global: { renderStubDefaultSlot: true },
@@ -139,13 +139,6 @@ describe('SiteForm', () => {
 			endpoint: '/api/files/field-uploads',
 			target: { owner: 'site', site_id: 11, profile_code: 'dev' },
 		})
-
-		const fieldsWrapper = shallowMount(SiteForm, {
-			props: { accessToken: 'token', siteId: 11 },
-			global: { renderStubDefaultSlot: true },
-		})
-		await flushPromises()
-		expect(fieldsWrapper.getComponent({ name: 'DynamicFieldsForm' }).props('siteId')).toBe(11)
 	})
 })
 
@@ -164,27 +157,16 @@ describe('incomplete site settings', () => {
     requestMock.mockResolvedValue({ items: [{ code: 'dev', name: 'Development', fields, editor_tabs: [] }] })
   })
 
-  it('creates with empty parameters omitted while retaining false and zero', async () => {
+  it('does not validate or submit profile settings during create', async () => {
     const wrapper = shallowMount(SiteForm, { props: { accessToken: 'token' }, global: { renderStubDefaultSlot: true } })
     await flushPromises()
     const form = wrapper.getComponent({ name: 'ElForm' })
-    Object.assign(form.props('model'), { name: 'New', domain: 'new.test', settings: { logo: 7, title: '', tags: [], slides: [], enabled: false, count: 0 } })
+    Object.assign(form.props('model'), { name: 'New', domain: 'new.test', settings: { logo: -1, count: -1 } })
     form.vm.$emit('submit', new Event('submit'))
-    expect(wrapper.emitted('submit')?.[0]?.[0]).toMatchObject({ settings: { logo: 7, enabled: false, count: 0 } })
-    wrapper.unmount()
-  })
-
-  it('blocks create when an empty required logo is omitted from settings', async () => {
-    const wrapper = shallowMount(SiteForm, { props: { accessToken: 'token' }, global: { renderStubDefaultSlot: true } })
-    await flushPromises()
-    const form = wrapper.getComponent({ name: 'ElForm' })
-    Object.assign(form.props('model'), { name: 'New', domain: 'new.test', settings: { logo: null, title: 'Draft' } })
-    form.vm.$emit('submit', new Event('submit'))
-    await flushPromises()
-
-    expect(wrapper.emitted('submit')).toBeUndefined()
-    expect(wrapper.getComponent({ name: 'DynamicFieldsForm' }).props('errors')).toMatchObject({ logo: 'Поле обязательно.' })
-    expect(form.props('model').settings.logo).toBeNull()
+    expect(wrapper.emitted('submit')?.[0]?.[0]).toEqual({
+      name: 'New', domain: 'new.test', profile_code: 'dev', locale: 'ru-RU', is_public: false,
+    })
+    expect(wrapper.findComponent({ name: 'DynamicFieldsForm' }).exists()).toBe(false)
     wrapper.unmount()
   })
 
@@ -205,20 +187,4 @@ describe('incomplete site settings', () => {
     wrapper.unmount()
   })
 
-  it.each([
-    [{ logo: -1 }, 'logo'],
-    [{ count: -1 }, 'count'],
-    [{ tags: ['one'] }, 'tags'],
-    [{ slides: [{}] }, 'slides[0].title'],
-  ])('rejects populated invalid create settings %j', async (settings, key) => {
-    const wrapper = shallowMount(SiteForm, { props: { accessToken: 'token' }, global: { renderStubDefaultSlot: true } })
-    await flushPromises()
-    const form = wrapper.getComponent({ name: 'ElForm' })
-    Object.assign(form.props('model'), { name: 'New', domain: 'new.test', settings })
-    form.vm.$emit('submit', new Event('submit'))
-    await flushPromises()
-    expect(wrapper.emitted('submit')).toBeUndefined()
-    expect(wrapper.getComponent({ name: 'DynamicFieldsForm' }).props('errors')[key]).toBeTruthy()
-    wrapper.unmount()
-  })
 })

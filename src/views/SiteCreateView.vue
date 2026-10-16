@@ -7,7 +7,7 @@ import { AdminAPIError, adminRequest } from '../api/admin-api'
 import SiteForm from '../components/SiteForm.vue'
 import { useServerValidation } from '../components/fields/server-validation'
 import { useSelectedSite } from '../composables/use-selected-site'
-import type { SiteDetailsResponse, SiteFormPayload } from '../types/admin'
+import type { SiteCreatePayload, SiteDetailsResponse } from '../types/admin'
 
 const props = defineProps<{
   accessToken: string
@@ -18,11 +18,13 @@ const router = useRouter()
 const selected = useSelectedSite()
 const submitting = ref(false)
 const error = ref<string | null>(null)
+const domainError = ref<string | null>(null)
 const { errors: fieldErrors, message: serverMessage, clear: clearValidation, capture: captureValidation } = useServerValidation()
 
-async function submit(payload: SiteFormPayload): Promise<void> {
+async function submit(payload: SiteCreatePayload): Promise<void> {
   submitting.value = true
   error.value = null
+  domainError.value = null
   clearValidation()
   try {
     const response = await adminRequest<SiteDetailsResponse>(
@@ -39,6 +41,8 @@ async function submit(payload: SiteFormPayload): Promise<void> {
   } catch (caught) {
     if (caught instanceof AdminAPIError && caught.status === 401)
       emit('unauthorized')
+    else if (caught instanceof AdminAPIError && caught.status === 409)
+      domainError.value = 'Домен уже используется'
     else {
       if (captureValidation(caught)) return
       error.value =
@@ -55,16 +59,17 @@ async function submit(payload: SiteFormPayload): Promise<void> {
     <header class="page-header">
       <div>
         <h1>Новый сайт</h1>
-        <p>Параметры определяются выбранным профилем</p>
+        <p>Настройки профиля можно заполнить после создания сайта</p>
       </div>
     </header>
     <site-form
       :access-token="accessToken"
       :submitting="submitting"
       :error="error"
+      :domain-error="domainError"
       :field-errors="fieldErrors"
       :server-message="serverMessage"
-      @clear-validation="clearValidation(); error = null"
+      @clear-validation="clearValidation(); error = null; domainError = null"
       @submit="submit"
       @cancel="router.push('/admin/sites')"
       @unauthorized="emit('unauthorized')"

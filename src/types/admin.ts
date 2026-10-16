@@ -193,12 +193,15 @@ export interface SiteProfilesResponse {
   items: SiteProfile[]
 }
 
-export interface SiteFormPayload {
+export interface SiteCreatePayload {
   profile_code: string
   name: string
   domain: string
   locale: string
   is_public: boolean
+}
+
+export interface SiteFormPayload extends SiteCreatePayload {
   settings: Record<string, unknown>
 }
 

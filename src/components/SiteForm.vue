@@ -15,7 +15,6 @@ import {
 } from 'element-plus'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
-import DynamicFieldsForm from './fields/DynamicFieldsForm.vue'
 import TabbedDynamicFieldsForm from './fields/TabbedDynamicFieldsForm.vue'
 import {
   createFieldValues,
@@ -23,6 +22,7 @@ import {
   type DynamicFieldErrors,
 } from './fields/model'
 import type {
+  SiteCreatePayload,
   SiteFormPayload,
   SiteProfile,
   SiteProfilesResponse,
@@ -39,11 +39,12 @@ const props = defineProps<{
   editing?: boolean
   submitting?: boolean
   error?: string | null
+  domainError?: string | null
   fieldErrors?: FieldValidationError[] | null
   serverMessage?: string | null
 }>()
 const emit = defineEmits<{
-  submit: [payload: SiteFormPayload]
+  submit: [payload: SiteCreatePayload | SiteFormPayload]
   cancel: []
   unauthorized: []
   clearValidation: []
@@ -68,7 +69,6 @@ const selectedProfile = computed(
 )
 const fileUploadContext = computed<FileUploadContext | undefined>(() => {
   if (props.editing && props.siteId && selectedProfile.value?.code) return { endpoint: '/api/files/field-uploads', target: { owner: 'site', site_id: props.siteId, profile_code: selectedProfile.value.code } }
-  if (selectedProfile.value?.code) return { endpoint: '/api/files/field-uploads', target: { owner: 'site', profile_code: selectedProfile.value.code } }
   return undefined
 })
 
@@ -100,8 +100,9 @@ onMounted(async () => {
     if (!form.profile_code) {
       form.profile_code = response.items[0]?.code ?? ''
     }
-    const fields = selectedProfile.value?.fields ?? []
-    form.settings = createFieldValues(fields, form.settings)
+    if (props.editing) {
+      form.settings = createFieldValues(selectedProfile.value?.fields ?? [], form.settings)
+    }
   } catch (error) {
     if (error instanceof AdminAPIError && error.status === 401)
       emit('unauthorized')
@@ -117,7 +118,9 @@ watch(
   (code, previous) => {
     if (!previous || code === previous || profiles.value.length === 0) return
     emit('clearValidation')
-    form.settings = createFieldValues(selectedProfile.value?.fields ?? [])
+    form.settings = props.editing
+      ? createFieldValues(selectedProfile.value?.fields ?? [])
+      : {}
     localFieldErrors.value = {}
   },
 )
@@ -130,31 +133,24 @@ function submit(): void {
     localError.value = 'Заполните название, домен, профиль и локаль.'
     return
   }
-  const fields = selectedProfile.value?.fields ?? []
-  if (unsupportedFieldTypes(fields).length > 0) {
-    localError.value =
-      'Форма содержит неизвестные типы полей и не может быть отправлена.'
-    return
+  if (props.editing) {
+    const fields = selectedProfile.value?.fields ?? []
+    if (unsupportedFieldTypes(fields).length > 0) {
+      localError.value =
+        'Форма содержит неизвестные типы полей и не может быть отправлена.'
+      return
+    }
+    localFieldErrors.value = validateFieldValues(fields, form.settings)
+    if (Object.keys(localFieldErrors.value).length > 0) return
   }
-  const settings = props.editing
-    ? { ...form.settings }
-    : Object.fromEntries(Object.entries(form.settings).filter(([, value]) =>
-      value !== null && value !== undefined && value !== '' &&
-      !(Array.isArray(value) && value.length === 0)))
-  // Validate every required field on create, including required values omitted
-  // from the payload. Keep omitted optional values out of validation so empty
-  // optional lists and blanks can still be omitted from site settings.
-  const validatedFields = props.editing ? fields : fields.filter(field => field.required || Object.hasOwn(settings, field.key))
-  localFieldErrors.value = validateFieldValues(validatedFields, settings)
-  if (Object.keys(localFieldErrors.value).length > 0) return
-  emit('submit', {
+  const payload: SiteCreatePayload = {
     name: form.name.trim(),
     domain: form.domain.trim(),
     profile_code: form.profile_code,
     locale: form.locale.trim(),
     is_public: form.is_public,
-    settings,
-  })
+  }
+  emit('submit', props.editing ? { ...payload, settings: { ...form.settings } } : payload)
 }
 </script>
 
@@ -174,11 +170,11 @@ function submit(): void {
       :closable="false"
       :title="error || localError || ''"
     />
-    <server-validation-errors :errors="fieldErrors" :message="serverMessage" :fields="[{ key: 'name', label: 'Название' }, { key: 'domain', label: 'Домен' }, { key: 'profile_code', label: 'Профиль' }, { key: 'locale', label: 'Локаль' }, ...(selectedProfile?.fields ?? [])]" />
+    <server-validation-errors :errors="fieldErrors" :message="serverMessage" :fields="[{ key: 'name', label: 'Название' }, { key: 'domain', label: 'Домен' }, { key: 'profile_code', label: 'Профиль' }, { key: 'locale', label: 'Локаль' }, ...(editing ? (selectedProfile?.fields ?? []) : [])]" />
     <el-form-item label="Название" required>
       <el-input v-model="form.name" placeholder="Название сайта" />
     </el-form-item>
-    <el-form-item label="Домен" required>
+    <el-form-item label="Домен" required :error="domainError || undefined">
       <el-input v-model="form.domain" placeholder="example.com" />
     </el-form-item>
     <el-form-item label="Профиль" required>
@@ -203,16 +199,6 @@ function submit(): void {
       :access-token="accessToken"
       :site-id="siteId"
       :editor-tabs="selectedProfile.editor_tabs"
-      :model-value="form.settings"
-      :errors="displayedFieldErrors"
-      :file-upload-context="fileUploadContext"
-      @update:model-value="form.settings = $event"
-    />
-    <dynamic-fields-form
-      v-else-if="selectedProfile"
-      :fields="selectedProfile.fields"
-      :access-token="accessToken"
-      :site-id="siteId"
       :model-value="form.settings"
       :errors="displayedFieldErrors"
       :file-upload-context="fileUploadContext"
