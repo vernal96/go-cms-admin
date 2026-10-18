@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.8.3
+
+- Synchronize the release set with go-cms-kernel v0.16.0. Module contributions are a backend extension API; admin functionality is unchanged.
+
 ## 0.8.2
 
 - Synchronize the release set with go-cms-kernel v0.15.0. The site publication flag now controls anonymous access to published site content without global guest grants; admin functionality is unchanged.
