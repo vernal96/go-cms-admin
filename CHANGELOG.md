@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.8.4
+
+- Synchronize the release set with go-cms-kernel v0.17.0. Typed Go field declarations preserve the existing admin HTTP and JSON contracts; admin functionality is unchanged.
+
 ## 0.8.3
 
 - Synchronize the release set with go-cms-kernel v0.16.0. Module contributions are a backend extension API; admin functionality is unchanged.
