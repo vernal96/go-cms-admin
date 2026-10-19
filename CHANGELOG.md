@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.8.5
+
+- Synchronize the release set with go-cms-kernel v0.17.1. Backend API 5xx errors now retain their cause in server access logs while keeping the existing safe response contract; admin functionality is unchanged.
+
 ## 0.8.4
 
 - Synchronize the release set with go-cms-kernel v0.17.0. Typed Go field declarations preserve the existing admin HTTP and JSON contracts; admin functionality is unchanged.
