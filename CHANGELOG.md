@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.8.6
+
+- Reset the resource editor to its first tab when navigating to another resource. Keep the selected tab while saving or updating the current resource.
+- Keep media field editing on numeric IDs while public media field responses gain file details in go-cms-kernel v0.18.0.
+
 ## 0.8.5
 
 - Synchronize the release set with go-cms-kernel v0.17.1. Backend API 5xx errors now retain their cause in server access logs while keeping the existing safe response contract; admin functionality is unchanged.

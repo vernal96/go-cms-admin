@@ -467,7 +467,13 @@ function optionDepth(item: ResourceOption, items: ResourceOption[]): number {
 
 onMounted(() => void load())
 onBeforeUnmount(() => { document.title = previousTitle })
-watch(() => [route.params.siteId, route.params.resourceId], () => void load())
+watch(
+  () => [route.params.siteId, route.params.resourceId],
+  () => {
+    activeTab.value = 'main'
+    void load()
+  },
+)
 </script>
 
 <template>

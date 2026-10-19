@@ -3,24 +3,34 @@
 import { flushPromises, shallowMount } from '@vue/test-utils'
 import { ElMessageBox } from 'element-plus'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { useRoute } from 'vue-router'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import ResourceEditView from './ResourceEditView.vue'
 import MediaField from '../components/fields/MediaField.vue'
 
+const routeState = vi.hoisted(() => ({ params: { siteId: '7', resourceId: '9' } }))
+
 vi.mock('../api/admin-api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/admin-api')>()),
   adminRequest: vi.fn(),
 }))
-vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { siteId: '7', resourceId: '9' } }),
-  useRouter: () => ({ push: vi.fn() }),
-}))
+vi.mock('vue-router', async () => {
+  const { reactive } = await import('vue')
+  const route = reactive(routeState)
+  return {
+    useRoute: () => route,
+    useRouter: () => ({ push: vi.fn() }),
+  }
+})
 
 const requestMock = vi.mocked(adminRequest)
 
 describe('ResourceEditView schema transitions', () => {
   beforeEach(() => {
+    const params = useRoute().params as Record<string, string>
+    params.siteId = '7'
+    params.resourceId = '9'
     requestMock.mockReset()
     requestMock
       .mockResolvedValueOnce({
@@ -112,6 +122,34 @@ describe('ResourceEditView schema transitions', () => {
       .mockResolvedValueOnce({ items: [] })
       .mockResolvedValueOnce({ site: { id: 7, domain: 'example.com' }, permissions: { read: true, create: true, update: true, delete: true } })
     vi.spyOn(ElMessageBox, 'confirm').mockResolvedValue('confirm' as never)
+  })
+
+  it('resets the selected tab when opening a different resource only', async () => {
+    const wrapper = shallowMount(ResourceEditView, {
+      props: { accessToken: 'token', permissions: new Set<string>() },
+      global: { renderStubDefaultSlot: true },
+    })
+    await flushPromises()
+
+    const tabs = wrapper.getComponent({ name: 'ElTabs' })
+    tabs.vm.$emit('update:modelValue', 'settings')
+    await wrapper.setProps({ accessToken: 'token', permissions: new Set<string>() })
+    expect(tabs.props('modelValue')).toBe('settings')
+
+    requestMock.mockResolvedValueOnce({
+      resource: { slug: '', version: 2, views_total: 47, sort: 0, fields: { page_title: 'Old title' } },
+    })
+    wrapper.findAllComponents({ name: 'ElButton' }).find((button) => button.text() === 'Сохранить')!.vm.$emit('click')
+    await flushPromises()
+    expect(tabs.props('modelValue')).toBe('settings')
+
+    const route = useRoute()
+    const params = route.params as Record<string, string>
+    params.resourceId = '10'
+    await flushPromises()
+    expect(requestMock.mock.calls.some((call) => call[0] === '/api/sites/7/resources/10')).toBe(true)
+    expect((wrapper.vm as unknown as { $: { setupState: { activeTab: string } } }).$.setupState.activeTab).toBe('main')
+    wrapper.unmount()
   })
 
   it('shows server validation in the summary, preserves the draft and clears on retry', async () => {
