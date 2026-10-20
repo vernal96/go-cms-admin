@@ -65,5 +65,8 @@
     "tinymce": "^8.8.2",
     "vue": "^3.5.40",
     "vue-router": "^4.6.4"
+  },
+  "dependencies": {
+    "@go-cms/admin-geo-yandex": "github:vernal96/go-cms-admin-geo-yandex#d3625cac7d46c449971bc8c4ba5b15ce094f6a0a"
   }
 }

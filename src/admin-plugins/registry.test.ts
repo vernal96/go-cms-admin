@@ -59,6 +59,10 @@ describe('AdminPluginRegistry', () => {
       'forms.results.detail',
     ].every((name) => adminPluginRegistry.hasRoute(name))).toBe(true)
   })
+
+  it('registers the Yandex coordinates field editor', () => {
+    expect(adminPluginRegistry.fieldEditor('geo-yandex.coordinates')).toBeDefined()
+  })
 })
 
 it('rejects equivalent parameter routes and shell routes', () => {
