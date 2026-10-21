@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src"
+  },
+  "include": [
+    "src/index.ts",
+    "src/api.ts",
+    "src/TaxiRecordsView.vue"
+  ],
+  "exclude": ["src/**/*.test.ts"]
+}

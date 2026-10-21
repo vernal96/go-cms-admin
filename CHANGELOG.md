@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.9.0
+
+- Add the optional `@go-cms/admin-taxi` package with site-scoped record management, search, validation, and explicit host registration. Extend the public Admin SDK for package routes and navigation.
+- Allow editing a user with an empty email while keeping email required when creating a user. Show a generic repair hint when Forms validation returns no structured field errors.
+- Update Vue, Vite, and transitive dependencies to versions with no reported npm audit vulnerabilities. Run UI test files serially to avoid intermittent shared-harness timing failures.
+- Synchronize this release with go-cms-kernel v0.19.0. The kernel adds site-scoped OAuth sign-in and cache outage bounds; these backend features keep their own public contracts.
+
 ## 0.8.6
 
 - Reset the resource editor to its first tab when navigating to another resource. Keep the selected tab while saving or updating the current resource.

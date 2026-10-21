@@ -21,7 +21,7 @@ export function useServerValidation() {
     // API error messages are rendered as text, with control characters and
     // excessive payloads removed before showing them in the form summary.
     const safeMessage = error.message.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500)
-    message.value = safeMessage || null
+    message.value = error.fieldErrors.length > 0 ? safeMessage || null : null
     return true
   }
   return { errors, message, clear, capture }

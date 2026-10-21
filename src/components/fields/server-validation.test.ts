@@ -25,7 +25,7 @@ describe('server validation summary', () => {
     expect(validationFieldLabel('', fields)).toBe('Поле')
   })
 
-  it('renders multiple errors as text, supports empty-details errors and clears on retry', async () => {
+  it('renders multiple errors as text, uses a generic summary without details and clears on retry', async () => {
     const state = useServerValidation()
     const original = [{ key: 'contacts[0].name', code: 'required' }, { key: '<script>', code: 'custom' }]
     expect(state.capture(new AdminAPIError(422, 'validation_failed', 'Internal validation error', original))).toBe(true)
@@ -40,7 +40,8 @@ describe('server validation summary', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     state.capture(new AdminAPIError(422, 'validation_failed', 'Forms validation failed'))
     await wrapper.setProps({ errors: state.errors.value, message: state.message.value })
-    expect(wrapper.text()).toContain('Forms validation failed')
+    expect(wrapper.text()).toContain('Исправьте данные и повторите попытку.')
+    expect(wrapper.text()).not.toContain('Forms validation failed')
     wrapper.unmount()
   })
 

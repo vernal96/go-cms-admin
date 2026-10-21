@@ -1,13 +1,16 @@
 {
   "name": "@go-cms/admin",
-  "version": "0.8.6",
+  "version": "0.9.0",
   "type": "module",
+  "workspaces": [
+    "packages/admin-taxi"
+  ],
   "engines": {
     "node": ">=24"
   },
   "scripts": {
     "dev": "vite",
-    "test": "vitest run && node --test scripts/check-vite-env.mjs",
+    "test": "vitest run --fileParallelism=false && node --test scripts/check-vite-env.mjs",
     "typecheck": "vue-go-tsc -p tsconfig.json --noEmit",
     "build": "npm run typecheck && vite build",
     "build:app": "vite build --config vite.app.config.ts && vue-go-tsc -p tsconfig.app.json",
@@ -27,9 +30,9 @@
     "jsdom": "28.1.0",
     "tinymce": "^8.8.2",
     "typescript": "7.0.2",
-    "vite": "8.1.5",
+    "vite": "8.3.5",
     "vitest": "4.1.11",
-    "vue": "3.5.40",
+    "vue": "3.5.44",
     "vue-go-tsc": "0.2.1",
     "vue-router": "4.6.4"
   },
@@ -63,7 +66,7 @@
     "cropperjs": "^1.6.2",
     "element-plus": "^2.14.3",
     "tinymce": "^8.8.2",
-    "vue": "^3.5.40",
+    "vue": "^3.5.42",
     "vue-router": "^4.6.4"
   },
   "dependencies": {

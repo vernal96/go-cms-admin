@@ -17,7 +17,7 @@ The SDK exports:
 - field/configuration metadata types, `DynamicField`, `DynamicFieldsForm`,
   `ConfigurationEditor`;
 - `useFieldValidation`, value initialization/validation helpers;
-- `useSelectedSite`, `adminRequest`, `adminBlob`, `AdminAPIError`.
+- `useSelectedSite`, `adminRequest`, `adminRequestVoid`, `adminBlob`, `AdminAPIError`.
 
 A plugin exports an `AdminPlugin` and uses its namespace for routes and editors.
 Pass it to `createAdminApp({ plugins: [plugin] })` or `mountAdmin({ plugins: [plugin] })`.

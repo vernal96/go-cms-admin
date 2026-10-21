@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { defineComponent } from 'vue'
+import { nextTick } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import { AdminPluginRegistry } from '../registry'
@@ -49,6 +50,8 @@ describe('contributed configuration editors', () => {
   const wrapper=mountAction({},'example.editor',registry)
   await flushPromises()
   await wrapper.find('.custom-config').trigger('click')
+  await flushPromises()
+  await nextTick()
   await wrapper.findAllComponents({name:'ElButton'}).at(-1)!.trigger('click')
   expect(wrapper.emitted('save')?.[0]?.[0]).toMatchObject({config:{count:7,enabled:false}})
   wrapper.unmount()

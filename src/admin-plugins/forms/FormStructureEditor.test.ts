@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AdminAPIError } from '../../api/admin-api'
 import { ElButton, ElInput, ElSelect, ElTree } from 'element-plus'
@@ -34,7 +35,9 @@ function button(wrapper: ReturnType<typeof setup>['wrapper'], label: string) {
   return wrapper.findAllComponents(ElButton).find(item => item.text() === label)!
 }
 async function choose(wrapper: ReturnType<typeof setup>['wrapper'], id: number) {
-  await wrapper.get(`[data-node-id="${id}"]`).trigger('click'); await flushPromises()
+  await wrapper.get(`[data-node-id="${id}"]`).trigger('click')
+  await flushPromises()
+  await nextTick()
 }
 
 describe('Forms structure panel', () => {
@@ -61,8 +64,10 @@ describe('Forms structure panel', () => {
     expect(api.createField).not.toHaveBeenCalled()
     wrapper.findAllComponents(ElSelect)[0]! .vm.$emit('update:modelValue', 'field')
     await flushPromises()
+    await nextTick()
     wrapper.findAllComponents(ElSelect)[1]! .vm.$emit('update:modelValue', 'email')
     await flushPromises()
+    await nextTick()
     expect(wrapper.findComponent(FormFieldEditor).exists()).toBe(true)
     const inputs = wrapper.getComponent(FormFieldEditor).findAllComponents(ElInput).map(item => item.get('input'))
     await inputs[0]!.setValue('contact'); await inputs[1]!.setValue('Контакт')

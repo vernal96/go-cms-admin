@@ -98,7 +98,8 @@ function validateInfo(): boolean {
     activeTab.value = 'info'
     return false
   }
-  if (!info.email.includes('@') || !info.name.trim()) {
+  const email = info.email.trim()
+  if ((!email && isCreate.value) || (email && !email.includes('@')) || !info.name.trim()) {
     ElMessage.error('Заполните корректный email и имя')
     activeTab.value = 'info'
     return false
@@ -141,7 +142,11 @@ async function saveInfo(): Promise<void> {
   if (!validateInfo()) return
   saving.value = true
   try {
-    await adminRequest<UserDetailsResponse>(`/api/admin/users/${userId.value}`, props.accessToken, { method: 'PATCH', body: JSON.stringify(infoPayload()) })
+    await adminRequest<UserDetailsResponse>(
+      `/api/admin/users/${userId.value}`,
+      props.accessToken,
+      { method: 'PATCH', body: JSON.stringify(infoPayload()) },
+    )
     ElMessage.success('Информация сохранена')
   } catch (caught) {
     handleError(caught)
@@ -154,7 +159,15 @@ async function savePassword(): Promise<void> {
   if (!validatePassword()) return
   saving.value = true
   try {
-    await adminRequestVoid(`/api/admin/users/${userId.value}/password`, props.accessToken, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: password.value }) })
+    await adminRequestVoid(
+      `/api/admin/users/${userId.value}/password`,
+      props.accessToken,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password.value }),
+      },
+    )
     password.value = ''
     password.confirmation = ''
     ElMessage.success('Пароль изменён')
@@ -168,7 +181,15 @@ async function savePassword(): Promise<void> {
 async function saveGroups(): Promise<void> {
   saving.value = true
   try {
-    await adminRequestVoid(`/api/admin/users/${userId.value}/groups`, props.accessToken, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group_ids: groupIDs.value }) })
+    await adminRequestVoid(
+      `/api/admin/users/${userId.value}/groups`,
+      props.accessToken,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group_ids: groupIDs.value }),
+      },
+    )
     ElMessage.success('Группы сохранены')
   } catch (caught) {
     handleError(caught)
@@ -214,13 +235,20 @@ function handleError(caught: unknown): void {
           <el-form label-position="top" class="identity-form">
             <div class="form-grid">
               <el-form-item label="Логин" required><el-input v-model="info.login" autocomplete="off" /></el-form-item>
-              <el-form-item label="Email" required><el-input v-model="info.email" type="email" /></el-form-item>
+              <el-form-item label="Email" :required="isCreate">
+                <el-input v-model="info.email" type="email" />
+              </el-form-item>
               <el-form-item label="Имя" required><el-input v-model="info.name" /></el-form-item>
               <el-form-item label="Фамилия"><el-input v-model="info.last_name" /></el-form-item>
               <el-form-item label="Отчество"><el-input v-model="info.middle_name" /></el-form-item>
               <el-form-item label="Телефон"><el-input v-model="info.phone" /></el-form-item>
             </div>
-            <el-button v-if="!isCreate && permissions.has('core.user.update')" type="primary" :loading="saving" @click="saveInfo">Сохранить информацию</el-button>
+            <el-button
+              v-if="!isCreate && permissions.has('core.user.update')"
+              type="primary"
+              :loading="saving"
+              @click="saveInfo"
+            >Сохранить информацию</el-button>
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="Пароль" name="password">
@@ -229,22 +257,57 @@ function handleError(caught: unknown): void {
             <el-button :icon="CopyDocument" :disabled="!password.value" @click="copyPassword">Копировать</el-button>
           </div>
           <el-form label-position="top" class="password-form">
-            <el-form-item :label="isCreate ? 'Пароль' : 'Новый пароль'" required><el-input v-model="password.value" :type="showPassword ? 'text' : 'password'" show-password autocomplete="new-password" /></el-form-item>
-            <el-form-item label="Подтверждение" required><el-input v-model="password.confirmation" :type="showPassword ? 'text' : 'password'" show-password autocomplete="new-password" /></el-form-item>
-            <el-button v-if="!isCreate && permissions.has('core.user.update')" type="primary" :loading="saving" @click="savePassword">Сменить пароль</el-button>
+            <el-form-item :label="isCreate ? 'Пароль' : 'Новый пароль'" required>
+              <el-input
+                v-model="password.value"
+                :type="showPassword ? 'text' : 'password'"
+                show-password
+                autocomplete="new-password"
+              />
+            </el-form-item>
+            <el-form-item label="Подтверждение" required>
+              <el-input
+                v-model="password.confirmation"
+                :type="showPassword ? 'text' : 'password'"
+                show-password
+                autocomplete="new-password"
+              />
+            </el-form-item>
+            <el-button
+              v-if="!isCreate && permissions.has('core.user.update')"
+              type="primary"
+              :loading="saving"
+              @click="savePassword"
+            >Сменить пароль</el-button>
           </el-form>
         </el-tab-pane>
         <el-tab-pane label="Группы" name="groups">
           <el-alert v-if="!permissions.has('core.group.read')" type="info" title="Нет права на просмотр групп" :closable="false" />
           <template v-else>
             <el-checkbox-group v-model="groupIDs" class="groups-choice" :disabled="!permissions.has('core.group.update')">
-              <el-checkbox v-for="item in groups" :key="item.id" :value="item.id"><strong>{{ item.name }}</strong><span class="group-code">{{ item.code }}</span></el-checkbox>
+              <el-checkbox
+                v-for="item in groups"
+                :key="item.id"
+                :value="item.id"
+              >
+                <strong>{{ item.name }}</strong>
+                <span class="group-code">{{ item.code }}</span>
+              </el-checkbox>
             </el-checkbox-group>
-            <el-button v-if="!isCreate && permissions.has('core.group.update')" type="primary" :loading="saving" @click="saveGroups">Сохранить группы</el-button>
+            <el-button
+              v-if="!isCreate && permissions.has('core.group.update')"
+              type="primary"
+              :loading="saving"
+              @click="saveGroups"
+            >Сохранить группы</el-button>
           </template>
         </el-tab-pane>
       </el-tabs>
-      <div v-if="isCreate" class="form-submit"><el-button type="primary" :loading="saving" @click="createUser">Создать пользователя</el-button></div>
+      <div v-if="isCreate" class="form-submit">
+        <el-button type="primary" :loading="saving" @click="createUser">
+          Создать пользователя
+        </el-button>
+      </div>
     </el-card>
   </section>
 </template>
