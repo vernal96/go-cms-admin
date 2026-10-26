@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import { ElMessage, ElSkeleton } from 'element-plus'
+import { ElMessage, ElSkeleton, ElTabs, ElTabPane } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 
 import { AdminAPIError, adminRequest } from '../api/admin-api'
 import SiteForm from '../components/SiteForm.vue'
+import SiteWidgetsEditor from '../components/site-widgets/SiteWidgetsEditor.vue'
 import { useServerValidation } from '../components/fields/server-validation'
 import { useSelectedSite } from '../composables/use-selected-site'
 import type { SiteDetailsResponse, SiteFormPayload } from '../types/admin'
@@ -22,6 +23,8 @@ const submitting = ref(false)
 const error = ref<string | null>(null)
 const { errors: fieldErrors, message: serverMessage, clear: clearValidation, capture: captureValidation } = useServerValidation()
 const initial = ref<SiteFormPayload | null>(null)
+const activeTab = ref('settings')
+const canUpdateSite = ref(false)
 
 async function load(): Promise<void> {
   loading.value = true
@@ -40,6 +43,7 @@ async function load(): Promise<void> {
       is_public: response.site.is_public,
       settings: response.site.settings,
     }
+    canUpdateSite.value = response.permissions.update
   } catch (caught) {
     handleError(caught)
   } finally {
@@ -87,7 +91,7 @@ function handleError(caught: unknown): void {
 onMounted(() => void load())
 watch(
   () => route.params.siteId,
-  () => void load(),
+  () => { activeTab.value = 'settings'; void load() },
 )
 </script>
 
@@ -100,21 +104,29 @@ watch(
       </div>
     </header>
     <el-skeleton v-if="loading" animated :rows="5" />
-    <site-form
-      v-else-if="initial"
-      :access-token="accessToken"
-      :site-id="Number(route.params.siteId)"
-      :initial="initial"
-      editing
-      :submitting="submitting"
-      :error="error"
-      :field-errors="fieldErrors"
-      :server-message="serverMessage"
-      @clear-validation="clearValidation(); error = null"
-      @submit="submit"
-      @cancel="router.push('/admin/sites')"
-      @unauthorized="emit('unauthorized')"
-    />
+    <el-tabs v-else-if="initial" v-model="activeTab" class="site-edit-tabs">
+      <el-tab-pane label="Настройки" name="settings">
+        <site-form
+          :access-token="accessToken"
+          :site-id="Number(route.params.siteId)"
+          :initial="initial"
+          editing
+          :submitting="submitting"
+          :error="error"
+          :field-errors="fieldErrors"
+          :server-message="serverMessage"
+          @clear-validation="clearValidation(); error = null"
+          @submit="submit"
+          @cancel="router.push('/admin/sites')"
+          @unauthorized="emit('unauthorized')"
+        />
+      </el-tab-pane>
+      <el-tab-pane label="Общие виджеты" name="shared-widgets">
+        <site-widgets-editor :key="String(route.params.siteId)" :access-token="accessToken" :site-id="Number(route.params.siteId)" :can-update="canUpdateSite" @unauthorized="emit('unauthorized')" />
+      </el-tab-pane>
+    </el-tabs>
     <div v-else class="form-load-error">{{ error }}</div>
   </section>
 </template>
+
+<style scoped>.site-edit-tabs{min-height:240px}</style>

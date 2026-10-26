@@ -38,6 +38,7 @@ const props = withDefaults(defineProps<{
   saving?: boolean
   serverErrors?: FieldValidationError[] | null
   serverMessage?: string | null
+  uploadTarget?: FileUploadContext['target'] | null
 }>(), { templateFields: () => [] })
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -56,10 +57,13 @@ const genericLiteralFields = computed(() => literalFields.value.filter((field) =
 const unsupported = computed(() => unsupportedFieldTypes(genericLiteralFields.value))
 const templateFieldsUnavailable = computed(() => Boolean(props.definition?.fields.some((field) => field.editor === 'template-field-picker') && !props.templateFields.length))
 const tabs = computed(() => props.definition?.editor_tabs ?? [])
-const fileUploadContext = computed<FileUploadContext | undefined>(() => props.definition ? {
-  endpoint: '/api/files/field-uploads',
-  target: { owner: 'widget', site_id: props.siteId, resource_id: props.resourceId, widget_code: props.definition.code },
-} : undefined)
+const fileUploadContext = computed<FileUploadContext | undefined>(() => {
+  if (props.uploadTarget === null) return undefined
+  return props.definition ? {
+    endpoint: '/api/files/field-uploads',
+    target: props.uploadTarget ?? { owner: 'widget', site_id: props.siteId, resource_id: props.resourceId, widget_code: props.definition.code },
+  } : undefined
+})
 
 function selectAvailableTab(): void {
   const names = tabs.value.map((tab) => tab.code)
@@ -160,10 +164,10 @@ function save(): void {
 
       <el-tabs v-if="tabs.length" v-model="activeTab">
         <el-tab-pane v-for="tab in tabs" :key="tab.code" :label="tab.label" :name="tab.code">
-				<widget-param-fields v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="fieldsForTab(tab.fields)" :template-fields="templateFields" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
+        <widget-param-fields v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="fieldsForTab(tab.fields)" :template-fields="templateFields" :errors="errors" :site-id="siteId" :resource-id="resourceId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
         </el-tab-pane>
       </el-tabs>
-			<widget-param-fields v-else v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="definition.fields" :template-fields="templateFields" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
+			<widget-param-fields v-else v-model="form.params" v-model:bindings="form.param_bindings" :sources="sources" :param-types="definition.param_types" :fields="definition.fields" :template-fields="templateFields" :errors="errors" :site-id="siteId" :resource-id="resourceId" :access-token="accessToken" :file-upload-context="fileUploadContext" />
     </el-form>
     <template #footer>
       <el-button @click="emit('update:modelValue', false)">Отмена</el-button>

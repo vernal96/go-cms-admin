@@ -84,6 +84,7 @@ export type FieldType =
   | 'email'
   | 'phone'
   | 'media'
+  | 'resource_reference'
   | 'repeater'
 
 export interface FieldChoice {

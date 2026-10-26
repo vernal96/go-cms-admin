@@ -2,6 +2,10 @@
 
 Standalone Vue administration UI and extension package for Go CMS.
 
+Optional domain-specific packages are installed by the host project. The Mosreg
+portal-directory plugin is documented in
+[`packages/admin-ministry/README.md`](packages/admin-ministry/README.md).
+
 ## Development
 
 Requires Node.js >=24 and npm. The backend must already be running.

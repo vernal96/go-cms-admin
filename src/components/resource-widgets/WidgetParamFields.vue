@@ -15,6 +15,7 @@ const props = withDefaults(defineProps<{
   paramTypes: Record<string, WidgetValueShape>
   errors: DynamicFieldErrors
   siteId: number
+  resourceId?: number
   accessToken: string
   fileUploadContext?: FileUploadContext
 }>(), { templateFields: () => [] })
@@ -90,7 +91,7 @@ function selectedTemplateFieldKeys(key: string): string[] {
         <el-option v-for="source in sourcesFor(field.key)" :key="sourceId(source)" :value="sourceId(source)" :label="`${source.label} (${source.kind === 'resource_field' ? 'Поле шаблона' : 'Свойство ресурса'}: ${source.key})`" />
       </el-select>
     </el-form-item>
-    <dynamic-fields-form v-else :model-value="modelValue" :fields="[{ ...field, visible_when: undefined }]" :errors="errors" :site-id="siteId" :access-token="accessToken" :file-upload-context="fileUploadContext" @update:model-value="emit('update:modelValue', $event)" />
+    <dynamic-fields-form v-else :model-value="modelValue" :fields="[{ ...field, visible_when: undefined }]" :errors="errors" :site-id="siteId" :resource-id="resourceId" :access-token="accessToken" :file-upload-context="fileUploadContext" :context-values="modelValue" @update:model-value="emit('update:modelValue', $event)" />
     </template>
   </div>
 </template>

@@ -86,6 +86,24 @@ describe('DynamicField', () => {
 		expect(wrapper.findComponent({ name: 'ResourcePickerField' }).props()).toMatchObject({ siteId: 7, accessToken: 'token' })
 	})
 
+	it('uses the shared material reference editor before the legacy resource-picker editor', () => {
+		const field: FieldDefinition = {
+			...definition('resource_reference'),
+			editor: 'resource-picker',
+			options: { templates: ['document'], storage_kinds: ['tree', 'library_item'] },
+		}
+		const wrapper = shallowMount(DynamicField, {
+			props: { field, modelValue: 37, siteId: 7, accessToken: 'token' },
+		})
+		const picker = wrapper.findComponent({ name: 'ResourceReferenceField' })
+		expect(picker.exists()).toBe(true)
+		expect(picker.props()).toMatchObject({
+			modelValue: 37,
+			templates: ['document'],
+			storageKinds: ['tree', 'library_item'],
+		})
+	})
+
 	it.each([
 		['resource-type-picker', 'ResourceTypePickerField'],
 		['resource-field-picker', 'ResourceFieldPickerField'],

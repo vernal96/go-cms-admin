@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.10.0 — 2026-10-26
+
+- Add resource references for tree resources and library items, schema-driven material fields and query targets, plus the site-wide widget editor. The optional `@go-cms/admin-ministry` package manages the shared Mosreg portal directory; see its README for host registration and permissions.
 
 ## 0.9.0
 

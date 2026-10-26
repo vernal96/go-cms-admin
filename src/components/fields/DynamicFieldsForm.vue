@@ -18,6 +18,8 @@ const props = withDefaults(
 		accessToken?: string
 		resourceTemplates?: Array<{ code: string; label: string }>
     fileUploadContext?: FileUploadContext
+    contextValues?: DynamicValues
+    resourceId?: number
   }>(),
   { errors: () => ({}) },
 )
@@ -55,6 +57,8 @@ function update(key: string, value: unknown): void {
       :field-path="field.key"
       :reference-path="[field.key]"
       :model-value="modelValue[field.key]"
+			:values="contextValues ?? modelValue"
+			:resource-id="resourceId"
 			:site-id="siteId ?? 0"
 			:access-token="accessToken ?? ''"
 			:resource-templates="resourceTemplates ?? []"

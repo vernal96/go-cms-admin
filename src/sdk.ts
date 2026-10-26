@@ -15,6 +15,9 @@ export type {
 export { default as DynamicField } from './components/fields/DynamicField.vue'
 export { default as DynamicFieldsForm } from './components/fields/DynamicFieldsForm.vue'
 export { default as ConfigurationEditor } from './components/fields/ConfigurationEditor.vue'
+export { default as ServerValidationErrors } from './components/fields/ServerValidationErrors.vue'
+export { serverValidationMessages, validationFieldLabel } from './components/fields/server-validation'
+export type { ValidationField } from './components/fields/server-validation'
 export {
   createFieldValues,
   validateFieldValues,

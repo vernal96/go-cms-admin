@@ -1,0 +1,32 @@
+{
+  "name": "@go-cms/admin-ministry",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "description": "Mosreg ministry administration plugin for Go CMS Admin",
+  "files": ["dist", "README.md"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "scripts": {
+    "build": "vite build && vue-go-tsc --declaration --emitDeclarationOnly --outDir dist -p tsconfig.build.json",
+    "typecheck": "vue-go-tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --config vite.config.ts --root ../../ packages/admin-ministry/src",
+    "prepack": "npm run build && npm test"
+  },
+  "peerDependencies": {
+    "@go-cms/admin": "^0.10.0",
+    "@element-plus/icons-vue": "^2.3.2",
+    "element-plus": "^2.14.3",
+    "vue": "^3.5.0"
+  },
+  "peerDependenciesMeta": {
+    "@go-cms/admin": { "optional": true }
+  }
+}

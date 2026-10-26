@@ -17,6 +17,7 @@ const supportedTypes = new Set([
   'media',
   'repeater',
 	'json',
+	'resource_reference',
 ])
 
 export function isMultipleField(field: FieldDefinition): boolean {
@@ -38,7 +39,7 @@ export interface FieldEditorResolver {
   fieldEditor(code: string): Component | undefined
 }
 
-const standardEditors = new Set([...supportedTypes, 'html', 'resource-template', 'resource-picker', 'resource-multi-picker', 'library-source-picker', 'resource-type-picker', 'resource-field-picker', 'filter-builder', 'sort-builder'])
+const standardEditors = new Set([...supportedTypes, 'html', 'resource-template', 'resource-picker', 'resource-multi-picker', 'library-source-picker', 'resource-type-picker', 'resource-field-picker', 'material-field-picker', 'widget-target-picker', 'filter-builder', 'sort-builder'])
 
 export function fieldEditorError(field: FieldDefinition, resolver?: FieldEditorResolver): string | undefined {
   const code = field.editor || field.type
@@ -74,6 +75,8 @@ export function createFieldValues(
       result[field.key] = null
     } else if (type === 'media') {
       result[field.key] = null
+		} else if (type === 'resource_reference') {
+			result[field.key] = null
 		} else if (type === 'json' || type === 'repeater') {
 			result[field.key] = []
     } else {

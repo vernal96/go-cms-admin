@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { ElButton, ElInput, ElOption, ElSelect } from 'element-plus'
+import { computed, onMounted, ref, watch } from 'vue'
+import { ElAlert, ElButton, ElInput, ElOption, ElSelect } from 'element-plus'
+import { AdminAPIError } from '../../api/admin-api'
+import { listWidgetTargets, type WidgetTargetField } from '../../api/materials'
 import type { FieldDefinition } from '../../types/admin'
 
 type Filter = { field: string; operator: string; value: unknown; value_kind?: string }
-const props = defineProps<{ field: FieldDefinition }>()
+const props = defineProps<{ field: FieldDefinition; siteId?: number; resourceId?: number; accessToken?: string; targetKey?: string }>()
 const model = defineModel<unknown>()
-const choices = computed(() => props.field.options?.choices ?? [])
+const targetFields = ref<WidgetTargetField[]>([])
+const loading = ref(false)
+const error = ref('')
+const choices = computed(() => targetFields.value.length
+  ? targetFields.value.map((item) => ({ value: item.value, label: item.label }))
+  : props.field.options?.choices ?? [])
 const filters = computed<Filter[]>(() => Array.isArray(model.value) ? model.value.filter(isFilter) : [])
 const operators = [
   { value: 'eq', label: 'Равно' }, { value: 'neq', label: 'Не равно' },
@@ -31,7 +38,9 @@ function defaultKind(path: string): string {
   if (['resource.published_at', 'resource.created_at', 'resource.updated_at'].includes(path)) return 'timestamp'
   return 'string'
 }
-function kind(item: Filter): string { return isCustom(item.field) ? item.value_kind || 'string' : defaultKind(item.field) }
+function kind(item: Filter): string {
+  return targetFields.value.find((field) => field.value === item.field)?.kind || (isCustom(item.field) ? item.value_kind || 'string' : defaultKind(item.field))
+}
 function replace(index: number, patch: Partial<Filter>): void {
   model.value = filters.value.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item)
 }
@@ -60,20 +69,38 @@ function parseValue(raw: string, item: Filter): unknown {
 function changeField(index: number, path: string): void {
   const old = filters.value[index]!
   const { value_kind: _kind, ...rest } = old
-  replace(index, { ...rest, field: path, ...(isCustom(path) ? { value_kind: 'string' } : {}) })
+  replace(index, { ...rest, field: path, ...(isCustom(path) ? { value_kind: targetFields.value.find((field) => field.value === path)?.kind || 'string' } : {}) })
 }
+
+async function loadFields(): Promise<void> {
+  targetFields.value = []
+  error.value = ''
+  if (!props.targetKey || !props.siteId || !props.resourceId || !props.accessToken) return
+  loading.value = true
+  try {
+    const response = await listWidgetTargets(props.accessToken, props.siteId, props.resourceId)
+    targetFields.value = response.items.find((item) => item.key === props.targetKey)?.fields ?? []
+  } catch (caught) {
+    error.value = caught instanceof AdminAPIError ? caught.message : 'Не удалось загрузить схему фильтров.'
+  } finally { loading.value = false }
+}
+onMounted(() => void loadFields())
+watch(() => [props.siteId, props.resourceId, props.targetKey], () => { model.value = []; void loadFields() })
 </script>
 
 <template>
+  <el-alert v-if="error" type="error" :closable="false" show-icon :title="error" />
+  <el-alert v-else-if="targetKey && !resourceId" type="info" :closable="false" title="Сначала выберите целевой список." />
   <div class="builder">
     <div v-for="(item, index) in filters" :key="index" class="builder-row">
-      <el-select :model-value="item.field" aria-label="Поле фильтра" @update:model-value="changeField(index, $event)">
+      <el-select :model-value="item.field" aria-label="Поле фильтра" :loading="loading" :disabled="loading || !choices.length" @update:model-value="changeField(index, $event)">
         <el-option v-for="choice in choices" :key="choice.value" :label="choice.label" :value="choice.value" />
       </el-select>
       <el-select :model-value="item.operator" aria-label="Оператор фильтра" @update:model-value="replace(index, { operator: $event })">
         <el-option v-for="operator in operators" :key="operator.value" :label="operator.label" :value="operator.value" />
       </el-select>
-      <el-select v-if="isCustom(item.field)" :model-value="kind(item)" aria-label="Тип значения" @update:model-value="replace(index, { value_kind: $event })">
+      <span v-if="targetFields.length" class="inferred-kind">{{ kinds.find((option) => option.value === kind(item))?.label ?? kind(item) }}</span>
+      <el-select v-else-if="isCustom(item.field)" :model-value="kind(item)" aria-label="Тип значения" @update:model-value="replace(index, { value_kind: $event })">
         <el-option v-for="option in kinds" :key="option.value" :label="option.label" :value="option.value" />
       </el-select>
       <el-input :model-value="valueText(item.value)" :placeholder="showSetValue(item.operator) ? 'Значения через запятую' : 'Значение'" aria-label="Значение фильтра" @update:model-value="replace(index, { value: parseValue($event, item) })" />
@@ -85,6 +112,7 @@ function changeField(index: number, path: string): void {
 
 <style scoped>
 .builder { display: grid; gap: 10px; }
+.inferred-kind { display:flex; align-items:center; color:var(--el-text-color-secondary); font-size:13px; }
 .builder-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; }
 @media (max-width: 760px) { .builder-row { grid-template-columns: 1fr; } }
 </style>

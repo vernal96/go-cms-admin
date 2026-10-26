@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { flushPromises, shallowMount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import ElementPlus from 'element-plus'
 import { beforeEach, expect, it, vi } from 'vitest'
 
 import { adminRequest } from '../api/admin-api'
@@ -14,6 +15,7 @@ vi.mock('../api/admin-api', async (importOriginal) => {
 })
 
 const request = vi.mocked(adminRequest)
+const SiteFormStub = { name: 'SiteForm', props: ['initial'], emits: ['submit'], template: '<div />' }
 
 beforeEach(() => {
   request.mockReset()
@@ -32,9 +34,9 @@ it('loads the name and refreshes the selected site after editing', async () => {
   })
   await router.push('/admin/sites/7/edit')
   await router.isReady()
-  const wrapper = shallowMount(SiteEditView, {
+  const wrapper = mount(SiteEditView, {
     props: { accessToken: 'token', permissions: new Set(['core.site.update']) },
-    global: { plugins: [router] },
+    global: { plugins: [router, ElementPlus], stubs: { SiteForm: SiteFormStub, SiteWidgetsEditor: true } },
   })
   await flushPromises()
   const form = wrapper.getComponent({ name: 'SiteForm' })
@@ -43,4 +45,25 @@ it('loads the name and refreshes the selected site after editing', async () => {
   await flushPromises()
   expect(useSelectedSite().selectedSite.value).toEqual({ id: 7, name: 'Новое название', domain: 'example.test' })
   expect(localStorage.getItem('go-cms.admin.selected-site')).toContain('Новое название')
+})
+
+it('renders the real Element Plus site tabs including shared widgets', async () => {
+  const current = { id: 7, name: 'Сайт', domain: 'example.test', profile_code: 'dev', locale: 'ru-RU', settings: {}, is_public: true }
+  request.mockResolvedValueOnce({ site: current, permissions: { update: true } })
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/admin/sites/:siteId/edit', component: SiteEditView }],
+  })
+  await router.push('/admin/sites/7/edit')
+  await router.isReady()
+  const wrapper = mount(SiteEditView, {
+    props: { accessToken: 'token', permissions: new Set(['core.site.update']) },
+    global: {
+      plugins: [router],
+      stubs: { SiteForm: true, SiteWidgetsEditor: true },
+    },
+  })
+  await flushPromises()
+  expect(wrapper.find('.el-tabs').exists()).toBe(true)
+  expect(wrapper.text()).toContain('Общие виджеты')
 })

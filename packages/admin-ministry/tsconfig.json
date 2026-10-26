@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": { "@go-cms/admin/sdk": ["../../dist-sdk/types/sdk.d.ts"] },
+    "strict": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": false,
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
+    "lib": ["ES2022", "DOM"],
+    "types": ["vitest/globals"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts"]
+}
