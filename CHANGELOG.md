@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1 — 2026-10-31
+
+- Synchronize with go-cms-kernel v0.20.1 and Starter v0.11.1. Update TinyMCE to v8.9.3 to address [GHSA-mf2p-h6hf-fcwm](https://github.com/advisories/GHSA-mf2p-h6hf-fcwm), and Vitest to v4.1.12 with fixes to transitive development dependencies. No new UI features.
+
 ## 0.10.0 — 2026-10-26
 
 - Add resource references for tree resources and library items, schema-driven material fields and query targets, plus the site-wide widget editor. The optional `@go-cms/admin-ministry` package manages the shared Mosreg portal directory; see its README for host registration and permissions.
